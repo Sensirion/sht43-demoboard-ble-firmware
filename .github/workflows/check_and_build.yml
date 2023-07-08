@@ -1,0 +1,68 @@
+
+name: 'check and build sht43 demoboard firmware'
+
+on:
+    workflow_dispatch:
+    push:
+    pull_request:
+
+jobs:
+    check_and_build:
+      env:
+        workdir: "/workdir"
+      runs-on: ubuntu-22.04
+      container:
+          image: ghcr.io/sensirion/sht43-demoboard-docker:main
+          credentials:
+              username: ${{ github.triggering_actor }}
+              password: ${{ secrets.GITHUB_TOKEN }}
+          volumes:
+              - ${{github.workspace}}:/workdir
+      steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+            - name: Make build scripts executable
+              run: chmod 777 build_scripts/*.sh
+            - name: Check codebase
+              run: |
+                build_scripts/check.sh
+            - name: Build codebase
+              run: |
+                build_scripts/build_source.sh
+            - name: Build docu
+              run: |
+                build_scripts/build_docu.sh
+            - name: upload-build
+              uses: actions/upload-artifact@v3
+              with:
+                name: sht43-ble-firmware
+                path: |
+                  build/**/SHT43_DB-*.bin
+                  build/**/SHT43_DB-*.elf
+                  build/**/SHT43_DB-*.hex
+                  build/**/SHT43_DB-*.map
+            - name: Upload docu
+              uses: actions/upload-pages-artifact@v1
+              with:
+                path: documentation/doxygen/output/html
+    deploy_pages:
+      # Specify runner + deployment step
+      runs-on: ubuntu-22.04
+      # Add a dependency to the build job
+      needs: check_and_build
+      # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+      permissions:
+        pages: write      # to deploy to Pages
+        id-token: write   # to verify the deployment originates from an appropriate source
+
+      # Deploy to the github-pages environment
+      environment:
+        name: github-pages
+        url: ${{ steps.deployment.outputs.page_url }}
+
+      steps:
+        - name: Deploy to GitHub Pages
+          id: deployment
+          uses: actions/deploy-pages@v2 # or the latest "vX.X.X" version tag for this action
+          with:
+            token: ${{secrets.GITHUB_TOKEN}}
