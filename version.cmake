@@ -1,0 +1,34 @@
+# Set the firmware version information
+set(APPLICATION_FW_VERSION_MAJOR 0)
+set(APPLICATION_FW_VERSION_MINOR 4)
+set(APPLICATION_FW_VERSION_PATCH 0)
+set(APPLICATION_FW_DEVELOP_FLAG 1)
+
+set(STACK_TYPE_BLE_FULL 1)
+set(STACK_FW_VERSION_MAJOR 1)
+set(STACK_FW_VERSION_MINOR 16)
+set(STACK_FW_VERSION_PATCH 0)
+set(FUS_FW_VERSION_MAJOR 1)
+set(FUS_FW_VERSION_MINOR 2)
+set(FUS_FW_VERSION_PATCH 0)
+
+# Inject the firmware version as preprocessor symbols into the software
+add_compile_definitions(FIRMWARE_VERSION_MAJOR=${APPLICATION_FW_VERSION_MAJOR})
+add_compile_definitions(FIRMWARE_VERSION_MINOR=${APPLICATION_FW_VERSION_MINOR})
+add_compile_definitions(FIRMWARE_VERSION_PATCH=${APPLICATION_FW_VERSION_PATCH})
+add_compile_definitions(FIRMWARE_VERSION_DEVELOP=${APPLICATION_FW_DEVELOP_FLAG})
+
+# wireless stack
+add_compile_definitions(COPRO_BINARY_TYPE=${STACK_TYPE_BLE_FULL})
+add_compile_definitions(COPRO_BINARY_VERSION_MAJOR=${STACK_FW_VERSION_MAJOR})
+add_compile_definitions(COPRO_BINARY_VERSION_MINOR=${STACK_FW_VERSION_MINOR})
+add_compile_definitions(COPRO_BINARY_VERSION_PATCH=${STACK_FW_VERSION_PATCH})
+
+# firmware update service
+add_compile_definitions(FUS_VERSION_MAJOR=${FUS_FW_VERSION_MAJOR})
+add_compile_definitions(FUS_VERSION_MINOR=${FUS_FW_VERSION_MINOR})
+add_compile_definitions(FUS_VERSION_PATCH=${FUS_FW_VERSION_PATCH})
+
+if ("${APPLICATION_FW_DEVELOP_FLAG}" EQUAL 1)
+    set(APPLICATION_FW_SUFFIX "-develop")
+endif ()
