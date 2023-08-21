@@ -14,7 +14,7 @@ All source code in the `./source` folder are defining the application and solely
 
 In the code under `./source` we have different coding conventions thar are enforced by clang-format.
 
-The software architecture overview of the SHT43 DemoBoard firmware is described [here](./documentation/doxygen/architecture_overview.md).
+The full documentation of the software is available on [`github pages`](https://sensirion.github.io/sht43-demoboard-ble-firmware)
 
 ## Building the application
 
@@ -37,16 +37,28 @@ cmake -B build/debug -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_BUILD_TYPE=debug -G Ninj
 cmake --build build/debug
 ```
 
-## Code formatting
+## Code checks and formatting
+
+Before building the source we first check if it conforms to our coding style and
+if it has a standard formatting. These tools are used to
+check the code on each push to the repository.
 
 Required tools:
-* [LLVM Tools](https://llvm.org/)
+* [editorconfig-checker](https://github.com/editorconfig-checker/editorconfig-checker)
+* [clang-format](https://clang.llvm.org/docs/ClangFormat.html)
+* [cppcheck](https://cppcheck.sourceforge.io/)
+* [clang-tidy](https://clang.llvm.org/extra/clang-tidy/)
+* [codespell](https://github.com/codespell-project/codespell)
 
-To standarize the formatting of all `.c` and `.h` files `clang format` is used:
+You can use `clang format` to standarize the formatting of all `.c` and `.h` files before
+pushing code to the repository.
 
 ```bash
 find source -type f -iregex ".*\.\(c\|h\)" -exec clang-format --i -style=file {} \;
 ```
+
+How these tools are used in the build workflow you can see in the file
+`./build_scripts/check.sh`.
 
 ## Building the documentation
 
