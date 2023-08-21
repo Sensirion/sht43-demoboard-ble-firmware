@@ -103,12 +103,11 @@ bool LinkedList_Remove(LinkedList_List_t* list, LinkedList_Node_t* node) {
 
 void LinkedList_Empty(LinkedList_List_t* list) {
   LinkedList_Node_t* current = &list->head;
-  LinkedList_Node_t* previous = current;
   uint32_t priorityMask = Concurrency_EnterCriticalSection();
 
   // reset all link information
   while (current->next != &list->head) {
-    previous = current;
+    LinkedList_Node_t* previous = current;
     current = current->next;
     previous->next = 0;
   }

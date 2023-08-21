@@ -145,7 +145,7 @@ void BleGap_AdvertiseRequest(BleTypes_ApplicationContext_t* applicationContext,
   if ((applicationContext->deviceConnectionStatus ==
        BLE_INTERFACE_ADVERTISING) &&
       (applicationContext->currentAdvertisementMode.compare != mode.compare)) {
-    ret = aci_gap_set_non_discoverable();
+    aci_gap_set_non_discoverable();
     applicationContext->deviceConnectionStatus = BLE_INTERFACE_IDLE;
   }
 

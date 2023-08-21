@@ -91,7 +91,7 @@ static void RunSystem(void);
 /// @param config data to start the message broker
 /// @param nrOfObservers nr of observers
 /// @param ... listeners that will register
-static void InitMessageBroker(MessageBus_t* config, uint8_t nrOfObservers, ...);
+static void InitMessageBroker(MessageBus_t* config, int nrOfObservers, ...);
 
 /// Task function to run the message broker in the scheduler
 static void RunAppMessageDispatch();
@@ -166,9 +166,7 @@ static void RunSystem(void) {
   }
 }
 
-static void InitMessageBroker(MessageBus_t* config,
-                              uint8_t nrOfObservers,
-                              ...) {
+static void InitMessageBroker(MessageBus_t* config, int nrOfObservers, ...) {
   MessageBroker_Create(&config->broker, config->messages,
                        COUNT_OF(config->messages), config->taskId,
                        config->priority);

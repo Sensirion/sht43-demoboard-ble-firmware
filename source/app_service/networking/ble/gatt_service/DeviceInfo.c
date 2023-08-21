@@ -172,7 +172,7 @@ static void AddSerialNumberCharacteristic(struct _tService* service) {
       .encryptionKeySize = 10,
       .isVariableLengthValue = true};
 
-  snprintf((char*)buffer, sizeof(buffer), "%lx", deviceId);
+  snprintf((char*)buffer, sizeof(buffer), "%lx", (unsigned long)deviceId);
   service->serialNumberHandle =
       BleGatt_AddCharacteristic(service->serviceHandle, &characteristic, buffer,
                                 strnlen((char*)buffer, sizeof(buffer)));
