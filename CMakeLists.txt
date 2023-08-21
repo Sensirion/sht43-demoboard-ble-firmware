@@ -5,7 +5,7 @@ include(version.cmake)
 set(TOOLCHAIN arm-none-eabi)
 find_path(TOOLCHAIN_PATH ${TOOLCHAIN})
 message("Toolchain " ${TOOLCHAIN} " installed in " ${TOOLCHAIN_PATH})
-set(CMAKE_C_STANDARD_INCLUDE_DIRECTORIES ${TOOLCHAIN_PATH}/include)
+set(CMAKE_C_STANDARD_INCLUDE_DIRECTORIES ${TOOLCHAIN_PATH}/${TOOLCHAIN}/include)
 message("Include directory of standard headers = " ${CMAKE_C_STANDARD_INCLUDE_DIRECTORIES})
 
 # Toolchain configuration

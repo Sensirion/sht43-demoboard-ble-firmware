@@ -39,7 +39,7 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
-#include "assert.h"
+#include "utility/StaticCodeAnalysisHelper.h"
 
 #include <stdint.h>
 
@@ -56,7 +56,7 @@ typedef enum {
 
 } MessageBroker_Category_t;
 
-static_assert(sizeof(MessageBroker_Category_t) <= 2);
+ASSERT_SIZE_TYPE1_LESS_THAN_TYPE2(MessageBroker_Category_t, uint16_t);
 
 /// Head of any message
 typedef struct _tMessageBroker_MsgHead {
@@ -79,7 +79,7 @@ typedef struct _tMessage_Message {
                                    ///< redefined in other messages
 } Message_Message_t;
 
-static_assert(sizeof(Message_Message_t) == sizeof(uint64_t));
+ASSERT_SIZE_TYPE1_LESS_THAN_TYPE2(Message_Message_t, uint64_t);
 
 /// Publish a message to all registered listeners of the
 /// Application message broker.
