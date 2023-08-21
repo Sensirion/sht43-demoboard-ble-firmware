@@ -39,6 +39,7 @@
 #define SYS_TEST_H
 
 #include "hal/Uart.h"
+#include "utility/StaticCodeAnalysisHelper.h"
 #include "utility/scheduler/MessageBroker.h"
 
 /// Defines the actually available test groups
@@ -68,7 +69,7 @@ typedef struct _tSysTest_Message {
                                         ///< the specified test function.
 } SysTest_Message_t;
 
-static_assert(sizeof(SysTest_Message_t) <= sizeof(uint64_t));
+ASSERT_SIZE_TYPE1_LESS_THAN_TYPE2(SysTest_Message_t, uint64_t);
 
 /// Return an initialized instance to the system test controller
 /// @return Pointer to a message listener

@@ -43,7 +43,7 @@ uint16_t BleGatt_AddPrimaryService(BleTypes_Uuid_t uuid,
       uuid.uuidType, (const Service_UUID_t*)&uuid.uuid, PRIMARY_SERVICE,
       nrOfCharacteristics * 2 + 1, &serviceHandle);
 
-  if (!status == BLE_STATUS_SUCCESS) {
+  if (status != BLE_STATUS_SUCCESS) {
     return 0;
   }
   return serviceHandle;

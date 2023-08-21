@@ -35,6 +35,7 @@
 #ifndef BATTERY_MONITOR_H
 #define BATTERY_MONITOR_H
 
+#include "utility/StaticCodeAnalysisHelper.h"
 #include "utility/scheduler/Message.h"
 #include "utility/scheduler/MessageListener.h"
 
@@ -55,7 +56,7 @@ typedef struct tBatteryMonitor_Message {
   BatteryMonitor_AppState_t previousState;  ///< previous application state
 } BatteryMonitor_Message_t;
 
-static_assert(sizeof(Message_Message_t) == sizeof(uint64_t));
+ASSERT_SIZE_TYPE1_LESS_THAN_TYPE2(Message_Message_t, uint64_t);
 
 /// specifies the message id's of this category
 typedef enum {

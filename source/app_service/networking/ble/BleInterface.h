@@ -41,6 +41,7 @@
 #define BLEINTERFACE_H
 
 #include "BleTypes.h"
+#include "utility/StaticCodeAnalysisHelper.h"
 #include "utility/scheduler/Message.h"
 
 #include <stdint.h>
@@ -63,7 +64,7 @@ typedef struct _tBleInterface_Message {
   } parameter;              ///< message parameter
 } BleInterface_Message_t;
 
-static_assert(sizeof(Message_Message_t) == sizeof(uint64_t));
+ASSERT_SIZE_TYPE1_LESS_THAN_TYPE2(Message_Message_t, uint64_t);
 
 /// Startup the Bluetooth Low Energy interface
 /// @param appContext Ble application context.

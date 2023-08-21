@@ -395,7 +395,7 @@ static void HandleUnrecoverableError(uint32_t errorCode) {
   Screen_DisplayFourDigits(errorCode, rowBottom, Screen_DisplayMinusBottom);
   Screen_UpdatePendingRequests();
   LOG_ERROR("Unrecoverable error %lu!!\nThe system needs to be rebooted\n!",
-            errorCode);
+            (unsigned long)errorCode);
 }
 
 static void LogFirmwareVersion(void) {

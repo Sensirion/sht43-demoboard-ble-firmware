@@ -20,7 +20,7 @@ echo "cpp-check"
 cppcheck --std=c11 --platform=unix32 -q --error-exitcode=1 -DPLACE_IN_SECTION --language=c ./source
 
 echo "clang-tidy"
-run-clang-tidy -p $workdir/build/release -extra-arg="-DSTATIC_CODE_ANALYSIS 1" workdir/source/utility/scheduler/
+run-clang-tidy -p $workdir/build/release -extra-arg="-DSTATIC_CODE_ANALYSIS=1" -extra-arg="--std=gnu99" $workdir/source
 
 
 # spell checker

@@ -45,7 +45,7 @@ static char gBleStringFormatBuffer[256];
 
 const char* BleHelper_FormatCallStatus(const char* call, uint32_t status) {
   snprintf(gBleStringFormatBuffer, sizeof gBleStringFormatBuffer,
-           "%s returned with code 0x%04lx\n", call, status);
+           "%s returned with code 0x%04lx\n", call, (unsigned long)status);
   return gBleStringFormatBuffer;
 }
 

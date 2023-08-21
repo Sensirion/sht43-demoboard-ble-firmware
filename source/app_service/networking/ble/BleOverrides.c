@@ -55,14 +55,14 @@
 ///  - hci_resume_flow()
 ///
 /// @param data Packet or event pointer
-void hci_notify_asynch_evt(void* data) {  // NOLINT
+void hci_notify_asynch_evt(void* data) {
   UTIL_SEQ_SetTask(1 << SCHEDULER_TASK_HANDLE_HCI_EVENT, SCHEDULER_PRIO_0);
 }
 
 /// Signals an event to the task that handles asynchronous events from CPU1.
 ///
 /// @param flag: Release flag
-void hci_cmd_resp_release(uint32_t flag) {  // NOLINT
+void hci_cmd_resp_release(uint32_t flag) {
   UTIL_SEQ_SetEvt(1 << SCHEDULER_EVENT_HCI_CMD_RESPONSE);
 }
 
@@ -70,6 +70,6 @@ void hci_cmd_resp_release(uint32_t flag) {  // NOLINT
 /// (triggered by hci_cmd_resp_release)
 ///
 /// @param timeout: Waiting timeout
-void hci_cmd_resp_wait(uint32_t timeout) {  // NOLINT
+void hci_cmd_resp_wait(uint32_t timeout) {
   UTIL_SEQ_WaitEvt(1 << SCHEDULER_EVENT_HCI_CMD_RESPONSE);
 }

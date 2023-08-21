@@ -39,6 +39,7 @@
 #define SHT4X_H
 
 #include "assert.h"
+#include "utility/StaticCodeAnalysisHelper.h"
 #include "utility/scheduler/MessageBroker.h"
 
 /// These are the ids of the message category
@@ -80,7 +81,7 @@ typedef struct _tSht4x_SensorMessage {
            ///<      message contains the measurement data or the serial number
 } Sht4x_SensorMessage_t;
 
-static_assert(sizeof(Sht4x_SensorMessage_t) == 8);
+ASSERT_SIZE_TYPE1_LESS_THAN_TYPE2(Sht4x_SensorMessage_t, uint64_t);
 
 /// Initialize the SHT4x Sensor
 ///
