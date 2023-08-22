@@ -41,6 +41,7 @@
 #include "app_service/networking/ble/BleGap.h"
 #include "app_service/networking/ble/BleHelper.h"
 #include "app_service/networking/ble/BleInterface.h"
+#include "app_service/networking/ble/gatt_service/ShtService.h"
 #include "app_service/nvm/ProductionParameters.h"
 #include "app_service/power_manager/BatteryMonitor.h"
 #include "app_service/sensor/Sht4x.h"
@@ -88,8 +89,7 @@ static BleTypes_AdvertisementData_t gAdvData = {
     .name = "",  // will be initialized later on
 };
 
-/// First state handler of the ble application
-/// for now we have only one single state
+/// Ble subsystem state handler
 ///
 /// @param message
 /// @return true if the message was handled, false otherwise
@@ -154,6 +154,11 @@ void BleContext_StartBluetoothApp() {
   BleInterface_Start(&gBleApplicationContext);
   gBleApplicationContext.deviceConnectionStatus = BLE_INTERFACE_IDLE;
   gBleApplicationContext.bleApplicationContextLegacy.connectionHandle = 0xFFFF;
+  _bleAppListener.currentMessageHandlerCb = BleDefaultStateCb;
+  Message_Message_t msg = {
+      .header.category = MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE,
+      .header.id = MESSAGE_ID_BLE_SUBSYSTEM_READY};
+  Message_PublishAppMessage(&msg);
 }
 
 /// BLE Application notification handler
@@ -311,11 +316,15 @@ static bool BleDefaultStateCb(Message_Message_t* message) {
   if (message->header.category == MESSAGE_BROKER_CATEGORY_SENSOR_VALUE &&
       message->header.id == SHT4X_MESSAGE_ID_SENSOR_DATA) {
     Sht4x_SensorMessage_t* sensorMsg = (Sht4x_SensorMessage_t*)message;
-    gAdvData.temperatureTicks = sensorMsg->data.measurement.temperatureTicks;
-    gAdvData.humidityTicks = sensorMsg->data.measurement.humidityTicks;
-    /// this does not change the advertisement mode
-    BleGap_AdvertiseRequest(&gBleApplicationContext,
-                            gBleApplicationContext.currentAdvertisementMode);
+    if (message->header.parameter1 == SHT4X_COMMAND_READ_SERIAL_NUMBER) {
+      ShtService_SetSerialNumber(sensorMsg->data.serialNumer);
+    } else {
+      gAdvData.temperatureTicks = sensorMsg->data.measurement.temperatureTicks;
+      gAdvData.humidityTicks = sensorMsg->data.measurement.humidityTicks;
+      /// this does not change the advertisement mode
+      BleGap_AdvertiseRequest(&gBleApplicationContext,
+                              gBleApplicationContext.currentAdvertisementMode);
+    }
     return true;
   }
 
@@ -391,6 +400,7 @@ static bool ForwardToBleAppCb(Message_Message_t* message) {
   if (message->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE &&
       message->header.id == MESSAGE_ID_READOUT_INTERVAL_CHANGE) {
     HandleReadoutIntervalChange(message->parameter2);
+    return true;
   }
 
   if (message->header.category == MESSAGE_BROKER_CATEGORY_BATTERY_EVENT &&
