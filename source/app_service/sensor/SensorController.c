@@ -48,11 +48,16 @@
 #include "utility/log/Trace.h"
 #include "utility/scheduler/MessageId.h"
 
+#include <string.h>
+
 /// Defines the maximum error retries
 #define MAX_CONSECUTIVE_ERRORS 3
 
 /// Helper macro for information logging
 #define LOG_INFO(...) Trace_Message(__VA_ARGS__)
+
+/// we allow only for one active reminder!
+Message_Message_t _reminder;
 
 /// Handles messages in idle state
 /// @param msg received message
@@ -69,6 +74,15 @@ static bool ShtRequestStartedStateCb(Message_Message_t* msg);
 /// @return true if the message was handled, false otherwise
 static bool ShtRequestReadingStateCb(Message_Message_t* msg);
 
+/// In case we receive a request that can not be handled right now,
+/// we may set a reminder to handle it later on.
+///
+/// @param msg received message
+static void SetReminderIfNeeded(Message_Message_t* msg);
+
+/// Set idle state and in process a possible pending request
+static void SetIdleState();
+
 /// Handles an incoming error
 /// @param errorCode specifies the error code that might be propagated
 static void HandleError(uint32_t errorCode);
@@ -77,7 +91,8 @@ static void HandleError(uint32_t errorCode);
 static SensorController_Controller_t _sht4xController = {
     .consecutiveErrors = 0,
     .listener.currentMessageHandlerCb = IdleStateCb,
-    .listener.receiveMask = MESSAGE_BROKER_CATEGORY_SENSOR_VALUE |
+    .listener.receiveMask = MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE |
+                            MESSAGE_BROKER_CATEGORY_SENSOR_VALUE |
                             MESSAGE_BROKER_CATEGORY_TIME_INFORMATION};
 
 SensorController_Controller_t* SensorController_Sht4xControllerInstance() {
@@ -85,6 +100,13 @@ SensorController_Controller_t* SensorController_Sht4xControllerInstance() {
 }
 
 static bool IdleStateCb(Message_Message_t* msg) {
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE &&
+      msg->header.id == MESSAGE_ID_BLE_SUBSYSTEM_READY) {
+    Sht4x_StartRequest(SHT4X_COMMAND_READ_SERIAL_NUMBER);
+    _sht4xController.listener.currentMessageHandlerCb =
+        ShtRequestStartedStateCb;
+    return true;
+  }
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_TIME_INFORMATION &&
       msg->header.id == MESSAGE_ID_TIME_INFO_TIME_ELAPSED) {
     Sht4x_StartRequest(SHT4X_COMMAND_HIGH_REPEATABILITY_MEASUREMENT);
@@ -113,23 +135,14 @@ static bool ShtRequestStartedStateCb(Message_Message_t* msg) {
     HandleError(msg->parameter2);
     return true;
   }
+  SetReminderIfNeeded(msg);
   return false;
 }
 
 static bool ShtRequestReadingStateCb(Message_Message_t* msg) {
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_SENSOR_VALUE) {
     if (msg->header.id == SHT4X_MESSAGE_ID_SENSOR_DATA) {
-      Sht4x_SensorMessage_t* sensorMsg = (Sht4x_SensorMessage_t*)msg;
-      if (sensorMsg->head.parameter1 == SHT4X_COMMAND_READ_SERIAL_NUMBER) {
-        _sht4xController.serialNumber = sensorMsg->data.serialNumer;
-        return true;
-      } else {
-        _sht4xController.temperatureTicks =
-            sensorMsg->data.measurement.temperatureTicks;
-        _sht4xController.humidityTicks =
-            sensorMsg->data.measurement.humidityTicks;
-      }
-      _sht4xController.listener.currentMessageHandlerCb = IdleStateCb;
+      SetIdleState();
       _sht4xController.consecutiveErrors = 0;
       return true;
     }
@@ -142,6 +155,7 @@ static bool ShtRequestReadingStateCb(Message_Message_t* msg) {
     HandleError(msg->parameter2);
     return true;
   }
+  SetReminderIfNeeded(msg);
   return false;
 }
 
@@ -152,5 +166,21 @@ static void HandleError(uint32_t errorCode) {
     ErrorHandler_UnrecoverableError(errorCode);
   }
   // just ignore the error and try in the next readout
+  SetIdleState();
+}
+
+static void SetReminderIfNeeded(Message_Message_t* msg) {
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE &&
+      msg->header.id == MESSAGE_ID_BLE_SUBSYSTEM_READY) {
+    _sht4xController.activeReminder = true;
+    memcpy(&_reminder, msg, sizeof(_reminder));
+  }
+}
+
+static void SetIdleState() {
   _sht4xController.listener.currentMessageHandlerCb = IdleStateCb;
+  if (_sht4xController.activeReminder) {
+    _sht4xController.listener.currentMessageHandlerCb(&_reminder);
+    _sht4xController.activeReminder = false;
+  }
 }

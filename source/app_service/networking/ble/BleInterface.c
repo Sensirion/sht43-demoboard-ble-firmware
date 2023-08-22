@@ -41,6 +41,7 @@
 #include "BleTypes.h"
 #include "app_service/networking/ble/gatt_service/DeviceInfo.h"
 #include "app_service/networking/ble/gatt_service/Reboot.h"
+#include "app_service/networking/ble/gatt_service/ShtService.h"
 #include "app_service/nvm/ProductionParameters.h"
 #include "shci.h"
 #include "stm32_lpm.h"
@@ -139,6 +140,7 @@ void BleInterface_Start(BleTypes_ApplicationContext_t* appContext) {
 
   // Initialization of the BLE Services
   DeviceInfo_Create();  // device info service is the only one for now!
+  ShtService_Create();
   Reboot_Create();
 }
 

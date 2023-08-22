@@ -254,7 +254,8 @@ static bool AppShowVersionStateCb(Message_Message_t* msg) {
 
 static bool AppNormalOperationStateCb(Message_Message_t* msg) {
   if ((msg->header.category == MESSAGE_BROKER_CATEGORY_SENSOR_VALUE) &&
-      (msg->header.id == SHT4X_MESSAGE_ID_SENSOR_DATA)) {
+      (msg->header.id == SHT4X_MESSAGE_ID_SENSOR_DATA) &&
+      (msg->header.parameter1 != SHT4X_COMMAND_READ_SERIAL_NUMBER)) {
     HandleNewSensorValues(&_controller, (Sht4x_SensorMessage_t*)msg);
     return true;
   }

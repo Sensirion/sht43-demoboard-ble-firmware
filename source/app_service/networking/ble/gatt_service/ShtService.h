@@ -31,33 +31,24 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////
 
-/// @file SensorController.c
+/// @file ShtService.h
 ///
-/// The sensor controller orchestrates the read and write commands to the SHT
-/// sensor.
+/// Global interface of sht service
+///
+#ifndef SHT_SERVICE_H
+#define SHT_SERVICE_H
 
-#ifndef SENSOR_CONTROLLER_H
-#define SENSOR_CONTROLLER_H
+#include <stdint.h>
 
-#include "stm32wbxx_hal.h"
-#include "utility/scheduler/MessageListener.h"
+/// Setup the sht service
+///
+/// The required fields are specified in
+/// https://confluence/display/GC/BLE+Services
+void ShtService_Create();
 
-#include <stdbool.h>
+/// Set the serial number of the sht sensor
+/// At the time of creation this value may not yet be read out.
+/// @param serialNumber Serialnumber of the service.
+void ShtService_SetSerialNumber(uint32_t serialNumber);
 
-/// This is the definition of the sensor state machine
-/// The controller caches the actual values from the sensor. The representation
-/// in units is done in another place.
-typedef struct _tSensorController_Controller {
-  MessageListener_Listener_t listener;  ///< base class, it listens to messages
-  uint8_t consecutiveErrors;            ///< Count errors during successive
-                                        ///< sensor requests.
-  bool activeReminder;                  ///< flag to indicate that we have an
-                                        ///< request that needs to be processed
-} SensorController_Controller_t;
-
-/// Initializes the sensor controller upon the first call
-/// This instance is kept even when entering low-power
-/// @return The initialized Instance of the sensor controller
-SensorController_Controller_t* SensorController_Sht4xControllerInstance();
-
-#endif  // SENSOR_CONTROLLER_H
+#endif  // SHT_SERVICE_H
