@@ -49,11 +49,10 @@
 /// in units is done in another place.
 typedef struct _tSensorController_Controller {
   MessageListener_Listener_t listener;  ///< base class, it listens to messages
-  uint32_t serialNumber;                ///< the serial number of the sensor
-  uint16_t humidityTicks;               ///< the actual humidity ticks
-  uint16_t temperatureTicks;            ///< the actual temperature ticks
   uint8_t consecutiveErrors;            ///< Count errors during successive
                                         ///< sensor requests.
+  bool activeReminder;                  ///< flag to indicate that we have an
+                                        ///< request that needs to be processed
 } SensorController_Controller_t;
 
 /// Initializes the sensor controller upon the first call
