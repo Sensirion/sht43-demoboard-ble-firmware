@@ -42,6 +42,7 @@
 #include "app_service/networking/ble/BleHelper.h"
 #include "app_service/networking/ble/BleInterface.h"
 #include "app_service/networking/ble/gatt_service/ShtService.h"
+#include "app_service/networking/ble/gatt_service/TemperatureService.h"
 #include "app_service/nvm/ProductionParameters.h"
 #include "app_service/power_manager/BatteryMonitor.h"
 #include "app_service/sensor/Sht4x.h"
@@ -324,6 +325,8 @@ static bool BleDefaultStateCb(Message_Message_t* message) {
       /// this does not change the advertisement mode
       BleGap_AdvertiseRequest(&gBleApplicationContext,
                               gBleApplicationContext.currentAdvertisementMode);
+      TemperatureService_SetTemperature(Sht4x_TicksToTemperatureCelsius(
+          sensorMsg->data.measurement.temperatureTicks));
     }
     return true;
   }
