@@ -65,11 +65,21 @@ uint16_t BleGatt_AddCharacteristic(uint16_t serviceHandle,
     return 0;
   }
 
-  status = aci_gatt_update_char_value(serviceHandle, characteristicHandle, 0,
-                                      valueLength, value);
+  status = BleGatt_UpdateCharacteristic(serviceHandle, characteristicHandle,
+                                        value, valueLength);
 
   if (status != BLE_STATUS_SUCCESS) {
     return 0;
   }
   return characteristicHandle;
+}
+
+tBleStatus BleGatt_UpdateCharacteristic(uint16_t serviceHandle,
+                                        uint16_t characteristicHandle,
+                                        uint8_t* value,
+                                        uint16_t valueLength) {
+  tBleStatus status = aci_gatt_update_char_value(
+      serviceHandle, characteristicHandle, 0, valueLength, value);
+
+  return status;
 }
