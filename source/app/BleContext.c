@@ -41,6 +41,7 @@
 #include "app_service/networking/ble/BleGap.h"
 #include "app_service/networking/ble/BleHelper.h"
 #include "app_service/networking/ble/BleInterface.h"
+#include "app_service/networking/ble/gatt_service/BatteryService.h"
 #include "app_service/networking/ble/gatt_service/HumidityService.h"
 #include "app_service/networking/ble/gatt_service/ShtService.h"
 #include "app_service/networking/ble/gatt_service/TemperatureService.h"
@@ -355,6 +356,14 @@ static bool BleDefaultStateCb(Message_Message_t* message) {
     BleGap_AdvertiseCancel(&gBleApplicationContext);
     _bleBridge.receiveMask = MESSAGE_BROKER_CATEGORY_BUTTON_EVENT;
     _bleAppListener.currentMessageHandlerCb = BleDisabledStateCb;
+    return true;
+  }
+
+  // react on battery level
+  if (message->header.category == MESSAGE_BROKER_CATEGORY_BATTERY_EVENT &&
+      message->header.id == BATTERY_MONITOR_MESSAGE_ID_CAPACITY_CHANGE) {
+    BatteryMonitor_Message_t* batteryMsg = (BatteryMonitor_Message_t*)message;
+    BatteryService_SetBatteryLevel(batteryMsg->remainingCapacity);
     return true;
   }
 
