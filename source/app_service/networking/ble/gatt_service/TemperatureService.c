@@ -76,9 +76,9 @@ void TemperatureService_Create() {
 }
 
 void TemperatureService_SetTemperature(float temperature) {
-  tBleStatus status = aci_gatt_update_char_value(
+  tBleStatus status = BleGatt_UpdateCharacteristic(
       _temperatureService.serviceHandle, _temperatureService.temperatureHandle,
-      0, sizeof temperature, (uint8_t*)&temperature);
+      (uint8_t*)&temperature, sizeof temperature);
 
   ASSERT(status == BLE_STATUS_SUCCESS);
 }

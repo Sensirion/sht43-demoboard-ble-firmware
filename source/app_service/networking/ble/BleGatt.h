@@ -65,4 +65,20 @@ uint16_t BleGatt_AddCharacteristic(uint16_t serviceHandle,
                                    uint8_t* value,
                                    uint16_t valueLength);
 
+/// Update an already created characteristic.
+///
+/// This method serves as a wrapper of the function
+/// aci_gatt_update_char_value(..)
+///
+/// @param serviceHandle The handle of a gatt service
+/// @param characteristicHandle The handle of the characteristic
+/// @param value A pointer to a byte array containing the value of
+///              the characteristic.
+/// @param valueLength number of used bytes
+/// @return The status of the update operation
+tBleStatus BleGatt_UpdateCharacteristic(uint16_t serviceHandle,
+                                        uint16_t characteristicHandle,
+                                        uint8_t* value,
+                                        uint16_t valueLength);
+
 #endif  // BLE_GATT_H
