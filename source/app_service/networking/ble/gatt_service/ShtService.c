@@ -71,9 +71,9 @@ void ShtService_Create() {
 }
 
 void ShtService_SetSerialNumber(uint32_t serialNumber) {
-  tBleStatus status = aci_gatt_update_char_value(
-      _shtService.serviceHandle, _shtService.serialNumberHandle, 0,
-      sizeof serialNumber, (uint8_t*)&serialNumber);
+  tBleStatus status = BleGatt_UpdateCharacteristic(
+      _shtService.serviceHandle, _shtService.serialNumberHandle,
+      (uint8_t*)&serialNumber, sizeof serialNumber);
 
   ASSERT(status == BLE_STATUS_SUCCESS);
 }
