@@ -41,6 +41,7 @@
 #include "app_service/networking/ble/BleGap.h"
 #include "app_service/networking/ble/BleHelper.h"
 #include "app_service/networking/ble/BleInterface.h"
+#include "app_service/networking/ble/gatt_service/HumidityService.h"
 #include "app_service/networking/ble/gatt_service/ShtService.h"
 #include "app_service/networking/ble/gatt_service/TemperatureService.h"
 #include "app_service/nvm/ProductionParameters.h"
@@ -327,6 +328,8 @@ static bool BleDefaultStateCb(Message_Message_t* message) {
                               gBleApplicationContext.currentAdvertisementMode);
       TemperatureService_SetTemperature(Sht4x_TicksToTemperatureCelsius(
           sensorMsg->data.measurement.temperatureTicks));
+      HumidityService_SetHumidity(
+          Sht4x_TicksToHumidity(sensorMsg->data.measurement.humidityTicks));
     }
     return true;
   }

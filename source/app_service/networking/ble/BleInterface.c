@@ -40,6 +40,7 @@
 #include "BleHelper.h"
 #include "BleTypes.h"
 #include "app_service/networking/ble/gatt_service/DeviceInfo.h"
+#include "app_service/networking/ble/gatt_service/HumidityService.h"
 #include "app_service/networking/ble/gatt_service/Reboot.h"
 #include "app_service/networking/ble/gatt_service/ShtService.h"
 #include "app_service/networking/ble/gatt_service/TemperatureService.h"
@@ -143,6 +144,7 @@ void BleInterface_Start(BleTypes_ApplicationContext_t* appContext) {
   DeviceInfo_Create();  // device info service is the only one for now!
   ShtService_Create();
   TemperatureService_Create();
+  HumidityService_Create();
   Reboot_Create();
 }
 
