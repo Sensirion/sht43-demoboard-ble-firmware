@@ -128,6 +128,7 @@ static MessageListener_Listener_t _bleAppListener = {
     .currentMessageHandlerCb = BleDefaultStateCb,
     .receiveMask = MESSAGE_BROKER_CATEGORY_SENSOR_VALUE |
                    MESSAGE_BROKER_CATEGORY_BLE_EVENT |
+                   MESSAGE_BROKER_CATEGORY_BATTERY_EVENT |
                    MESSAGE_BROKER_CATEGORY_BUTTON_EVENT |
                    MESSAGE_BROKER_CATEGORY_TIME_INFORMATION};
 
@@ -409,23 +410,30 @@ static bool ForwardToBleAppCb(Message_Message_t* message) {
     return true;
   }
 
-  if (message->header.category == MESSAGE_BROKER_CATEGORY_BATTERY_EVENT &&
-      message->header.id == BATTERY_MONITOR_MESSAGE_ID_STATE_CHANGE) {
-    BatteryMonitor_Message_t* batteryMsg = (BatteryMonitor_Message_t*)message;
-    BleTypes_AdvertisementMode_t newMode =
-        gBleApplicationContext.currentAdvertisementMode;
-    newMode.advertiseModeSpecification.connectable =
-        (batteryMsg->currentState == BATTERY_MONITOR_APP_STATE_NO_RESTRICTION);
-    uint8_t newMessageId =
-        batteryMsg->currentState !=
-                BATTERY_MONITOR_APP_STATE_CRITICAL_BATTERY_LEVEL
-            ? BLE_INTERFACE_MSG_ID_START_ADVERTISE
-            : BLE_INTERFACE_MSG_ID_STOP_ADVERTISE;
-    BleInterface_Message_t newMsg = {
-        .head = {.id = newMessageId,
-                 .category = MESSAGE_BROKER_CATEGORY_BLE_EVENT},
-        .parameter.advertisementMode = newMode};
-    BleInterface_PublishBleMessage((Message_Message_t*)&newMsg);
+  if (message->header.category == MESSAGE_BROKER_CATEGORY_BATTERY_EVENT) {
+    if (message->header.id == BATTERY_MONITOR_MESSAGE_ID_STATE_CHANGE) {
+      BatteryMonitor_Message_t* batteryMsg = (BatteryMonitor_Message_t*)message;
+      BleTypes_AdvertisementMode_t newMode =
+          gBleApplicationContext.currentAdvertisementMode;
+      newMode.advertiseModeSpecification.connectable =
+          (batteryMsg->currentState ==
+           BATTERY_MONITOR_APP_STATE_NO_RESTRICTION);
+      uint8_t newMessageId =
+          batteryMsg->currentState !=
+                  BATTERY_MONITOR_APP_STATE_CRITICAL_BATTERY_LEVEL
+              ? BLE_INTERFACE_MSG_ID_START_ADVERTISE
+              : BLE_INTERFACE_MSG_ID_STOP_ADVERTISE;
+      BleInterface_Message_t newMsg = {
+          .head = {.id = newMessageId,
+                   .category = MESSAGE_BROKER_CATEGORY_BLE_EVENT},
+          .parameter.advertisementMode = newMode};
+      BleInterface_PublishBleMessage((Message_Message_t*)&newMsg);
+      return true;
+    }
+    if (message->header.id == BATTERY_MONITOR_MESSAGE_ID_CAPACITY_CHANGE) {
+      BleInterface_PublishBleMessage(message);
+      return true;
+    }
   }
   return false;
 }

@@ -37,7 +37,20 @@
 #include "hal/Adc.h"
 #include "utility/scheduler/MessageId.h"
 
+#include <math.h>
 #include <stdbool.h>
+
+/// slope of the battery level curve in the range 100% - 25%
+#define BATTERY_LEVEL_SLOPE_1 0.3
+
+/// offset of the battery level curve in the range 100% - 25%
+#define BATTERY_LEVEL_OFFSET_1 -800
+
+/// slope of the battery level curve in the range 25% - 5%
+#define BATTERY_LEVEL_SLOPE_2 0.08
+
+/// offset of the battery level curve in the range 25% - 5%
+#define BATTERY_LEVEL_OFFSET_2 -195
 
 /// Constants to define the threshold when the
 /// application state changes.
@@ -61,9 +74,15 @@ typedef enum {
 typedef struct tBatteryMonitor {
   MessageListener_Listener_t listener;  ///< listener to receive the time tick
   uint32_t batteryLevelMV;              ///< battery level in millivolt
+  uint8_t remainingCapacity;            ///< battery level in percent
   BatteryMonitor_AppState_t actualApplicationState;  ///< actual application
                                                      ///< state
 } BatteryMonitor_t;
+
+/// Compute the remaining capacity of the battery
+/// @param batteryLevelMv battery level in millivolt
+/// @return remaining capacity in percent
+static uint8_t ComputeRemainingCapacity(uint32_t batteryLevelMv);
 
 /// The message handler of the BatteryMonitor.
 /// The BatteryMonitor only listens to the time tick of the application. It has
@@ -94,6 +113,7 @@ BatteryMonitor_t _batteryMonitorInstance = {
     .listener = {.currentMessageHandlerCb = MessageHandlerCb,
                  .receiveMask = MESSAGE_BROKER_CATEGORY_TIME_INFORMATION},
     .batteryLevelMV = 0,
+    .remainingCapacity = 0,
     .actualApplicationState = BATTERY_MONITOR_APP_STATE_UNDEFINED};
 
 /// Create a new instance of the battery monitor. The Battery monitor is
@@ -122,6 +142,7 @@ static void InitializeVbatCb(uint32_t vbatMv) {
 
 static void UpdateVbatCb(uint32_t vbatMv) {
   _batteryMonitorInstance.batteryLevelMV = vbatMv;
+  uint8_t remainingCapacity = ComputeRemainingCapacity(vbatMv);
   BatteryMonitor_AppState_t state =
       _batteryMonitorInstance.actualApplicationState;
   _batteryMonitorInstance.actualApplicationState =
@@ -132,6 +153,14 @@ static void UpdateVbatCb(uint32_t vbatMv) {
         .previousState = state,
         .head = {.category = MESSAGE_BROKER_CATEGORY_BATTERY_EVENT,
                  .id = BATTERY_MONITOR_MESSAGE_ID_STATE_CHANGE}};
+    Message_PublishAppMessage((Message_Message_t*)&msg);
+  }
+  if (remainingCapacity != _batteryMonitorInstance.remainingCapacity) {
+    _batteryMonitorInstance.remainingCapacity = remainingCapacity;
+    BatteryMonitor_Message_t msg = {
+        .remainingCapacity = remainingCapacity,
+        .head = {.category = MESSAGE_BROKER_CATEGORY_BATTERY_EVENT,
+                 .id = BATTERY_MONITOR_MESSAGE_ID_CAPACITY_CHANGE}};
     Message_PublishAppMessage((Message_Message_t*)&msg);
   }
 }
@@ -153,4 +182,18 @@ static bool MessageHandlerCb(Message_Message_t* message) {
     return true;
   }
   return false;
+}
+
+static uint8_t ComputeRemainingCapacity(uint32_t batteryLevelMv) {
+  if (_batteryMonitorInstance.actualApplicationState ==
+      BATTERY_MONITOR_APP_STATE_NO_RESTRICTION) {
+    return (uint8_t)fminf(100, round(batteryLevelMv * BATTERY_LEVEL_SLOPE_1 +
+                                     BATTERY_LEVEL_OFFSET_1));
+  }
+  if (_batteryMonitorInstance.actualApplicationState ==
+      BATTERY_MONITOR_APP_STATE_REDUCED_OPERATION) {
+    return (uint8_t)fminf(25, round(batteryLevelMv * BATTERY_LEVEL_SLOPE_2 +
+                                    BATTERY_LEVEL_OFFSET_2));
+  }
+  return 0;  // this is not of interest anymore
 }
