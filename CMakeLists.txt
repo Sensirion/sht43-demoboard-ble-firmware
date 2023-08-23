@@ -119,6 +119,7 @@ set(APP_SOURCES
     source/app_service/networking/ble/gatt_service/DeviceInfo.c
     source/app_service/networking/ble/gatt_service/Reboot.c
     source/app_service/networking/ble/gatt_service/ShtService.c
+    source/app_service/networking/ble/gatt_service/TemperatureService.c
     source/app_service/power_manager/PowerManager.c
     source/app_service/power_manager/LpmHooks.c
     source/app_service/power_manager/SchedulerOverride.c
