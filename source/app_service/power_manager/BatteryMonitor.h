@@ -54,6 +54,9 @@ typedef struct tBatteryMonitor_Message {
   BatteryMonitor_AppState_t currentState;   ///< application state that is
                                             ///< becoming active
   BatteryMonitor_AppState_t previousState;  ///< previous application state
+  uint8_t remainingCapacity;                ///< remaining capacity; this value
+                                            ///< in only valid when message id
+                                            ///< is NEW_CAPACITY_VALUE
 } BatteryMonitor_Message_t;
 
 ASSERT_SIZE_TYPE1_LESS_THAN_TYPE2(Message_Message_t, uint64_t);
@@ -61,7 +64,7 @@ ASSERT_SIZE_TYPE1_LESS_THAN_TYPE2(Message_Message_t, uint64_t);
 /// specifies the message id's of this category
 typedef enum {
   BATTERY_MONITOR_MESSAGE_ID_STATE_CHANGE = 1,
-  BATTERY_MONITOR_MESSAGE_ID_NEW_LIFETIME_VALUE = 2
+  BATTERY_MONITOR_MESSAGE_ID_CAPACITY_CHANGE = 2
 } BatteryMonitor_MessageId_t;
 
 /// Create a new instance of the battery monitor. The Battery monitor is

@@ -39,6 +39,7 @@
 #include "BleGap.h"
 #include "BleHelper.h"
 #include "BleTypes.h"
+#include "app_service/networking/ble/gatt_service/BatteryService.h"
 #include "app_service/networking/ble/gatt_service/DeviceInfo.h"
 #include "app_service/networking/ble/gatt_service/HumidityService.h"
 #include "app_service/networking/ble/gatt_service/Reboot.h"
@@ -141,10 +142,11 @@ void BleInterface_Start(BleTypes_ApplicationContext_t* appContext) {
   HciGapGattInit(appContext);
 
   // Initialization of the BLE Services
-  DeviceInfo_Create();  // device info service is the only one for now!
+  DeviceInfo_Create();
   ShtService_Create();
   TemperatureService_Create();
   HumidityService_Create();
+  BatteryService_Create();
   Reboot_Create();
 }
 
