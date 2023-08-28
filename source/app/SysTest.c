@@ -38,6 +38,7 @@
 #include "hal/Qspi.h"
 #include "test/AdcTest.h"
 #include "test/CyclicBufferTest.h"
+#include "test/FlashTest.h"
 #include "test/ListTest.h"
 #include "test/PresentationTest.h"
 #include "test/QspiTest.h"
@@ -94,14 +95,21 @@ static SysTest_TestFunctionCb_t _screenTestFunctions[] = {
 static SysTest_TestFunctionCb_t _presentationTestFunctions[] = {
     PresentationTest_SetTimeStep, PresentationTest_TriggerPowerStateChange};
 
+/// Test functions to test the LCD screen
+static SysTest_TestFunctionCb_t _flashTestFunctions[] = {
+    FlashTest_Erase, FlashTest_Read, FlashTest_Write};
+
 /// Array with test function pointers
-static SysTest_TestFunctionCb_t* _allTests[] = {_screenTestFunctions,
-                                                _presentationTestFunctions};
+static SysTest_TestFunctionCb_t* _allTests[] = {
+    _flashTestFunctions, _screenTestFunctions, _presentationTestFunctions};
 
 /// Have a list with the sizes of all test tables in order to check
 /// the access to the test functions
-static uint8_t _allTestsSizes[] = {COUNT_OF(_screenTestFunctions),
-                                   COUNT_OF(_presentationTestFunctions)};
+static uint8_t _allTestsSizes[] = {
+    COUNT_OF(_flashTestFunctions),
+    COUNT_OF(_screenTestFunctions),
+    COUNT_OF(_presentationTestFunctions),
+};
 
 MessageListener_Listener_t* SysTest_TestControllerInstance() {
   return &_SysTestController;

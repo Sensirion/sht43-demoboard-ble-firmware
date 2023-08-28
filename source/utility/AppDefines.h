@@ -82,9 +82,10 @@
 /// Defines the application components that may prevent the low power manager
 /// to enter a specific power down mode.
 typedef enum {
-  APP_DEFINE_LPM_CLIENT_APP,  ///< the main application
-  APP_DEFINE_LPM_CLIENT_BLE,  ///< the ble context
-  APP_DEFINE_LPM_CLIENT_I2C   ///< an i2c transaction
+  APP_DEFINE_LPM_CLIENT_APP,   ///< the main application
+  APP_DEFINE_LPM_CLIENT_BLE,   ///< the ble context
+  APP_DEFINE_LPM_CLIENT_I2C,   ///< an i2c transaction
+  APP_DEFINE_LPM_CLIENT_FLASH  ///< a flash erase operation
 } AppDefine_LpmClient_t;
 
 #endif  // APP_DEFINES_H
