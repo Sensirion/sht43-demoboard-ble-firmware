@@ -41,6 +41,7 @@
 #include "SysTest.h"
 #include "app/Presentation.h"
 #include "app/test/FlashTest.h"
+#include "app_service/item_store/ItemStore.h"
 #include "app_service/networking/HciTransport.h"
 #include "app_service/networking/ble/BleInterface.h"
 #include "app_service/nvm/ProductionParameters.h"
@@ -119,9 +120,10 @@ void System_Init(void) {
   // This is the first thing to do since errors are also propagated as
   // messages
   InitMessageBroker(
-      &_appMessageBroker, 5, SysTest_TestControllerInstance(),
+      &_appMessageBroker, 6, SysTest_TestControllerInstance(),
       BatteryMonitor_Instance(), SensorController_Sht4xControllerInstance(),
-      BleContext_BridgeInstance(), Presentation_ControllerInstance());
+      BleContext_BridgeInstance(), Presentation_ControllerInstance(),
+      ItemStore_ListenerInstance());
 
   InitMessageBroker(&_bleMessageBroker, 1, BleContext_Instance());
 
@@ -154,6 +156,8 @@ void System_Init(void) {
   Sht4x_Init(&_appMessageBroker.broker);
 
   Uart_RegisterRxHandler(SysTest_GetUartReceiver());
+
+  ItemStore_Init();
 
   RunSystem();
 }

@@ -55,6 +55,7 @@ typedef enum {
   ERROR_CODE_TIMEOUT,
   ERROR_CODE_SENSOR_READOUT,
   ERROR_CODE_BLE,
+  ERROR_CODE_ITEM_STORE,
 } ErrorHandler_ErrorCode_t;
 
 /// Signals an unrecoverable error to the application

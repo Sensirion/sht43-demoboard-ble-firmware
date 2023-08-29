@@ -39,6 +39,7 @@
 #include "test/AdcTest.h"
 #include "test/CyclicBufferTest.h"
 #include "test/FlashTest.h"
+#include "test/ItemStoreTest.h"
 #include "test/ListTest.h"
 #include "test/PresentationTest.h"
 #include "test/QspiTest.h"
@@ -99,16 +100,24 @@ static SysTest_TestFunctionCb_t _presentationTestFunctions[] = {
 static SysTest_TestFunctionCb_t _flashTestFunctions[] = {
     FlashTest_Erase, FlashTest_Read, FlashTest_Write};
 
+/// Test functions to test the LCD screen
+static SysTest_TestFunctionCb_t _itemStoreTestFunctions[] = {
+    ItemStoreTest_AddItem};
+
 /// Array with test function pointers
 static SysTest_TestFunctionCb_t* _allTests[] = {
-    _flashTestFunctions, _screenTestFunctions, _presentationTestFunctions};
+    [SYS_TEST_TEST_GROUP_FLASH] = _flashTestFunctions,
+    [SYS_TEST_TEST_GROUP_ITEM_STORE] = _itemStoreTestFunctions,
+    [SYS_TEST_TEST_GROUP_SCREEN] = _screenTestFunctions,
+    [SYS_TEST_TEST_GROUP_PRESENTATION] = _presentationTestFunctions};
 
 /// Have a list with the sizes of all test tables in order to check
 /// the access to the test functions
 static uint8_t _allTestsSizes[] = {
-    COUNT_OF(_flashTestFunctions),
-    COUNT_OF(_screenTestFunctions),
-    COUNT_OF(_presentationTestFunctions),
+    [SYS_TEST_TEST_GROUP_FLASH] = COUNT_OF(_flashTestFunctions),
+    [SYS_TEST_TEST_GROUP_ITEM_STORE] = COUNT_OF(_itemStoreTestFunctions),
+    [SYS_TEST_TEST_GROUP_SCREEN] = COUNT_OF(_screenTestFunctions),
+    [SYS_TEST_TEST_GROUP_PRESENTATION] = COUNT_OF(_presentationTestFunctions),
 };
 
 MessageListener_Listener_t* SysTest_TestControllerInstance() {

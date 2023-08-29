@@ -110,6 +110,7 @@ set(APP_SOURCES
     source/app/test/AdcTest.c
     source/app/test/PresentationTest.c
     source/app/test/FlashTest.c
+    source/app/test/ItemStoreTest.c
     source/app/BleContext.c
     source/app_service/networking/HciTransport.c
     source/app_service/networking/ble/BleInterface.c
@@ -123,6 +124,7 @@ set(APP_SOURCES
     source/app_service/networking/ble/gatt_service/TemperatureService.c
     source/app_service/networking/ble/gatt_service/HumidityService.c
     source/app_service/networking/ble/gatt_service/BatteryService.c
+    source/app_service/item_store/ItemStore.c
     source/app_service/power_manager/PowerManager.c
     source/app_service/power_manager/LpmHooks.c
     source/app_service/power_manager/SchedulerOverride.c
