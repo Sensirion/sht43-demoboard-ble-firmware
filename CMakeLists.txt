@@ -109,6 +109,7 @@ set(APP_SOURCES
     source/app/test/ScreenTest.c
     source/app/test/AdcTest.c
     source/app/test/PresentationTest.c
+    source/app/test/FlashTest.c
     source/app/BleContext.c
     source/app_service/networking/HciTransport.c
     source/app_service/networking/ble/BleInterface.c
@@ -137,6 +138,7 @@ set(APP_SOURCES
     source/app_service/user_button/ButtonEvent.c
     source/hal/Adc.c
     source/hal/Clock.c
+    source/hal/Flash.c
     source/hal/Gpio.c
     source/hal/Ipcc.c
     source/hal/Rtc.c

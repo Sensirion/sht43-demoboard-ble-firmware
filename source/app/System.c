@@ -40,6 +40,7 @@
 #include "BleContext.h"
 #include "SysTest.h"
 #include "app/Presentation.h"
+#include "app/test/FlashTest.h"
 #include "app_service/networking/HciTransport.h"
 #include "app_service/networking/ble/BleInterface.h"
 #include "app_service/nvm/ProductionParameters.h"
@@ -52,6 +53,7 @@
 #include "app_service/user_button/Button.h"
 #include "app_service/user_button/ButtonEvent.h"
 #include "hal/Clock.h"
+#include "hal/Flash.h"
 #include "hal/Gpio.h"
 #include "hal/I2c3.h"
 #include "hal/Ipcc.h"
@@ -133,6 +135,8 @@ void System_Init(void) {
 
   Gpio_InitClocks();
 
+  Flash_Init();
+
   Screen_Init();
 
   PowerManger_Init();
@@ -156,6 +160,7 @@ void System_Init(void) {
 
 static void RunSystem(void) {
   // trigger the initialization of the application
+
   Message_Message_t peripheralInitialized = {
       .header.category = MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE,
       .header.id = MESSAGE_ID_PERIPHERALS_INITIALIZED};
