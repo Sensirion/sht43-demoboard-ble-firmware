@@ -36,6 +36,15 @@
 
 #include "app/Presentation.h"
 #include "app_service/item_store/ItemStore.h"
+#include "app_service/timer_server/TimerServer.h"
+
+/// Parameter of the timerAddItem test
+static SysTest_TestMessageParameter_t _timerAddItemParameter;
+/// Id of the timer that is used to add items to the item store
+static uint8_t _timerAddItemId;
+
+/// Called when the add-item timer is elapsed
+static void OnTimerElapsed();
 
 /// Default item values for testing
 ItemStore_ItemStruct_t _testItemData[] = {
@@ -51,4 +60,27 @@ void ItemStoreTest_AddItem(SysTest_TestMessageParameter_t param) {
     ItemStore_AddItem(param.byteParameter[0],
                       &_testItemData[param.byteParameter[0]]);
   }
+}
+
+/// Starts a timer that inserts items into the item store
+/// @param param parameters of the Flash_Erase function
+///              byteParameter[0] is the item to be added;
+///              the added data are hard coded
+///              shortParameter[1] is the number of items that shall be inserted
+void ItemStoreTest_TimerAddItem(SysTest_TestMessageParameter_t param) {
+  _timerAddItemParameter = param;
+  _timerAddItemId =
+      TimerServer_CreateTimer(TIMER_SERVER_MODE_REPEATED, OnTimerElapsed);
+  TimerServer_Start(_timerAddItemId, 200);
+}
+
+static void OnTimerElapsed() {
+  if (_timerAddItemParameter.shortParameter[1] == 0) {
+    TimerServer_Stop(_timerAddItemId);
+    TimerServer_DeleteTimer(_timerAddItemId);
+    return;
+  }
+  ItemStore_AddItem(_timerAddItemParameter.byteParameter[0],
+                    &_testItemData[_timerAddItemParameter.byteParameter[0]]);
+  _timerAddItemParameter.shortParameter[1]--;
 }
