@@ -40,6 +40,8 @@
 #ifndef __ERROR_HANDLER_H
 #define __ERROR_HANDLER_H
 
+#include <stdint.h>
+
 /// Macro to assert a condition
 #define ASSERT(x)                                               \
   do {                                                          \
@@ -76,5 +78,14 @@ void ErrorHandler_UnrecoverableError(ErrorHandler_ErrorCode_t code);
 /// On application layer it will be ignored.
 /// @param code Error code that is published
 void ErrorHandler_RecoverableError(ErrorHandler_ErrorCode_t code);
+
+/// Signals a recoverable error with an additional parameter
+///
+/// A recoverable error may be used to exit a wait state of a state machine
+/// On application layer it will be ignored.
+/// @param code Error code that is published
+/// @param parameter Parameter that can be used to resolve the error condition
+void ErrorHandler_RecoverableErrorExtended(ErrorHandler_ErrorCode_t code,
+                                           uint8_t parameter);
 
 #endif  // __ERROR_HANDLER_H
