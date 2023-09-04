@@ -226,11 +226,17 @@ void ErrorHandler_UnrecoverableError(ErrorHandler_ErrorCode_t code) {
 }
 
 void ErrorHandler_RecoverableError(ErrorHandler_ErrorCode_t code) {
+  ErrorHandler_RecoverableErrorExtended(code, 0);
+}
+
+void ErrorHandler_RecoverableErrorExtended(ErrorHandler_ErrorCode_t code,
+                                           uint8_t param) {
   // The recoverable error is sent in another category to allow faster filtering
   // and since it does not trigger a state change
   Message_Message_t msg = {
       .header.id = 1,
       .header.category = MESSAGE_BROKER_CATEGORY_RECOVERABLE_ERROR,
+      .header.parameter1 = param,
       .parameter2 = code};
   Message_PublishAppMessage((Message_Message_t*)&msg);
 }
