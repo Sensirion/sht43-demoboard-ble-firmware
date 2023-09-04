@@ -66,6 +66,24 @@
 /// A tag to identify the header of a page;
 #define PAGE_MAGIC 0xA53CC35A
 
+/// Compute the following page number in the specified item_store.
+#define NEXT_PAGE_NR(item_store, page_nr)                             \
+  ((((page_nr) + 1) > (item_store->lastPage)) ? item_store->firstPage \
+                                              : ((page_nr) + 1))
+
+/// Check the consistency of the page begin tag
+#define BEGIN_TAG_IS_CONSISTENT(store, header, actual_page) \
+  ((header.beginTag.magic == PAGE_MAGIC) &&                 \
+   (header.beginTag.pageId == actual_page) &&               \
+   (header.beginTag.itemSize == store->itemSize))
+
+/// Check the consistency of the page end tag
+#define COMPLETE_TAG_IS_CONSISTENT(store, header, actual_page)     \
+  ((header.completeTag.magic == PAGE_MAGIC) &&                     \
+   (header.completeTag.nrOfItems ==                                \
+    ((FLASH_PAGE_SIZE - sizeof(header)) / ((store)->itemSize))) && \
+   (header.completeTag.nextPage == NEXT_PAGE_NR(store, actual_page)))
+
 /// Marker that page is in use
 typedef struct {
   uint32_t magic;   ///< tag to flag a page that contains valid data
@@ -78,7 +96,7 @@ typedef struct {
 /// Marker that page is complete; no further items fit
 typedef struct {
   uint32_t magic;      ///< tag to flag a page that is filled with valid data
-  uint16_t nfOfItems;  ///< number of items stored in this page
+  uint16_t nrOfItems;  ///< number of items stored in this page
   uint8_t nextPage;    ///< next page that will be used
   uint8_t nextPageId;  ///< next page id that will be used
 } PageCompleteTag_t;
@@ -239,12 +257,13 @@ ItemStoreInfo_t _itemStore[] = {
     [ITEM_DEF_SYSTEM_CONFIG] = {.firstPage = SYSTEM_CONFIG_FIRST_PAGE,
                                 .lastPage = SYSTEM_CONFIG_LAST_PAGE,
                                 .nrOfPages = 2,
-                                .itemSize = 64,
+                                .itemSize = sizeof(ItemStore_SystemConfig_t),
                                 .currentState = IdleState},
     [ITEM_DEF_MEASUREMENT_SAMPLE] = {.firstPage = MEASUREMENT_VALUES_FIRST_PAGE,
                                      .lastPage = MEASUREMENT_VALUES_LAST_PAGE,
                                      .nrOfPages = 17,
-                                     .itemSize = 4,
+                                     .itemSize =
+                                         sizeof(ItemStore_MeasurementSample_t),
                                      .currentState = IdleState},
 };
 
@@ -320,17 +339,34 @@ static void InitItemStore(ItemStoreInfo_t* itemStoreInfo,
   itemStoreInfo->currentPageInfo.blockId = 0;
   itemStoreInfo->currentPageInfo.itemId = id;
   itemStoreInfo->currentPageInfo.itemSize = itemStoreInfo->itemSize;
+  // in case we have no valid data we still need a valid initialization
+  itemStoreInfo->nextWritePageInfo = itemStoreInfo->currentPageInfo;
+  itemStoreInfo->oldestPageInfo = itemStoreInfo->currentPageInfo;
   PageHeader_t pageHeader = {0};
   for (uint8_t i = 0; i < itemStoreInfo->nrOfPages; i++) {
-    Flash_Read(PAGE_ADDR(i + itemStoreInfo->firstPage), (uint8_t*)&pageHeader,
+    uint8_t actualPageId = i + itemStoreInfo->firstPage;
+    Flash_Read(PAGE_ADDR(actualPageId), (uint8_t*)&pageHeader,
                sizeof(pageHeader));
     if (HasNoData((uint8_t*)&pageHeader,
                   sizeof(pageHeader))) {  // no valid data
       continue;
     }
+    if (!BEGIN_TAG_IS_CONSISTENT(itemStoreInfo, pageHeader, actualPageId)) {
+      ErrorHandler_RecoverableErrorExtended(ERROR_CODE_ITEM_STORE,
+                                            actualPageId);
+    }
+
     itemStoreInfo->currentPageInfo = pageHeader.beginTag;
     UpdateNewestOldestPage(itemStoreInfo, i == 0);
-    if (pageHeader.completeTag.magic == PAGE_MAGIC) {  // page is full
+
+    if (!HasNoData(
+            (uint8_t*)&pageHeader.completeTag,  // page is marked complete
+            sizeof pageHeader.completeTag)) {
+      if (!COMPLETE_TAG_IS_CONSISTENT(itemStoreInfo, pageHeader,
+                                      actualPageId)) {
+        ErrorHandler_RecoverableErrorExtended(ERROR_CODE_ITEM_STORE,
+                                              actualPageId);
+      }
       itemStoreInfo->nrOfFullPages++;
     } else {  // there is remaining space
       itemStoreInfo->currentPageNrOfItems =
@@ -350,7 +386,10 @@ static void InitItemStore(ItemStoreInfo_t* itemStoreInfo,
 
 static bool WriteItem(ItemStoreInfo_t* itemStoreInfo,
                       const ItemStore_ItemStruct_t* data) {
-  // write the data
+  // never write into a page that does not belong to the item store!
+  ASSERT(
+      (itemStoreInfo->firstPage <= itemStoreInfo->nextWritePageInfo.pageId) &&
+      (itemStoreInfo->lastPage >= itemStoreInfo->nextWritePageInfo.pageId));
   uint32_t pageAddress = PAGE_ADDR(itemStoreInfo->nextWritePageInfo.pageId);
   uint32_t writeAddress =
       pageAddress + sizeof(PageHeader_t) +
@@ -363,24 +402,22 @@ static bool WriteItem(ItemStoreInfo_t* itemStoreInfo,
 }
 
 static bool ClosePageIfFull(ItemStoreInfo_t* itemStoreInfo) {
-  uint32_t pageAddress = PAGE_ADDR(itemStoreInfo->nextWritePageInfo.pageId);
+  uint8_t actualPage = itemStoreInfo->nextWritePageInfo.pageId;
+  uint32_t pageAddress = PAGE_ADDR(actualPage);
 
   uint32_t writeAddress =
       pageAddress + sizeof(PageHeader_t) +
       itemStoreInfo->currentPageNrOfItems * itemStoreInfo->itemSize;
   // no new item fits in this page
   if (writeAddress + itemStoreInfo->itemSize > pageAddress + FLASH_PAGE_SIZE) {
+    uint8_t nextPage = NEXT_PAGE_NR(itemStoreInfo, actualPage);
     // Prepare close tag and write to flash
-    uint8_t nextPage = (itemStoreInfo->nextWritePageInfo.pageId + 1);
-    if (nextPage > itemStoreInfo->lastPage) {
-      nextPage = itemStoreInfo->firstPage;
-    }
     PageCompleteTag_t completeTag = {
         .magic = PAGE_MAGIC,
         .nextPage = nextPage,
         .nextPageId =
             (itemStoreInfo->nextWritePageInfo.blockId + 1) % MAX_BLOCK_INDEX,
-        .nfOfItems = itemStoreInfo->currentPageNrOfItems};
+        .nrOfItems = itemStoreInfo->currentPageNrOfItems};
 
     if (!Flash_Write(pageAddress + sizeof(PageBeginTag_t),
                      (uint8_t*)&completeTag, sizeof(PageCompleteTag_t))) {
