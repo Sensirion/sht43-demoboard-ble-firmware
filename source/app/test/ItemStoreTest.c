@@ -30,55 +30,25 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////
-/// @file SysTest.h
-///
-/// Here we can list test cases that need to be executed on application
-/// level.
 
-#ifndef SYS_TEST_H
-#define SYS_TEST_H
+/// @file ItemStoreTest.c
+#include "ItemStoreTest.h"
 
-#include "hal/Uart.h"
-#include "utility/StaticCodeAnalysisHelper.h"
-#include "utility/scheduler/MessageBroker.h"
+#include "app/Presentation.h"
+#include "app_service/item_store/ItemStore.h"
 
-/// Defines the actually available test groups
-/// This enum is meant for documentation purposes and will
-/// be extended in the future.
-typedef enum {
-  SYS_TEST_TEST_GROUP_FLASH = 0,
-  SYS_TEST_TEST_GROUP_ITEM_STORE,
-  SYS_TEST_TEST_GROUP_SCREEN,
-  SYS_TEST_TEST_GROUP_PRESENTATION
-} SysTest_TestGroups;
+/// Default item values for testing
+ItemStore_ItemStruct_t _testItemData[] = {
+    [0] = {.configuration.debug = true,
+           .configuration.deviceName = "test demo board name",
+           .configuration.loggingInterval = 5000},
+    [1] = {.measurement.sample = {{0xABCD, 0x0123}, {0x4567, 0x89AB}}}};
 
-/// Generic data structure that is given to test functions as argument
-typedef union _uSysTest_TestMessage {
-  uint8_t byteParameter[4];    ///< 8bit access to the data
-  uint16_t shortParameter[2];  ///< 16bit access to the data
-  uint32_t longParameter;      ///< 32bit access to the data
-} SysTest_TestMessageParameter_t;
-
-/// Signature of any test function that can be hooked up to the test controller
-typedef void (*SysTest_TestFunctionCb_t)(SysTest_TestMessageParameter_t param);
-
-/// A message to hold information about test
-/// The contents of the message are not yet well defined.
-/// Its a showcase how to extend messages.
-typedef struct _tSysTest_Message {
-  MessageBroker_MsgHead_t head;         ///< Generic message header
-  SysTest_TestMessageParameter_t data;  ///< Data to be passed as arguments to
-                                        ///< the specified test function.
-} SysTest_Message_t;
-
-ASSERT_SIZE_TYPE1_LESS_THAN_TYPE2(SysTest_Message_t, uint64_t);
-
-/// Return an initialized instance to the system test controller
-/// @return Pointer to a message listener
-MessageListener_Listener_t* SysTest_TestControllerInstance();
-
-/// Get an object that may receive data from the UART
-/// @return a receiver object
-Uart_Receiver_t* SysTest_GetUartReceiver();
-
-#endif  // SYS_TEST_H
+void ItemStoreTest_AddItem(SysTest_TestMessageParameter_t param) {
+  // avoid overflow of message queue
+  Presentation_setTimeStep(240);
+  for (int i = 0; i < param.byteParameter[1]; i++) {
+    ItemStore_AddItem(param.byteParameter[0],
+                      &_testItemData[param.byteParameter[0]]);
+  }
+}

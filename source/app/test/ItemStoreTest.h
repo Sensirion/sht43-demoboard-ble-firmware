@@ -30,55 +30,24 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////
-/// @file SysTest.h
-///
-/// Here we can list test cases that need to be executed on application
-/// level.
 
-#ifndef SYS_TEST_H
-#define SYS_TEST_H
+/// @file ItemStoreTest.h
+#ifndef ITEM_STORE_TEST_H
+#define ITEM_STORE_TEST_H
 
-#include "hal/Uart.h"
-#include "utility/StaticCodeAnalysisHelper.h"
-#include "utility/scheduler/MessageBroker.h"
+#include "app/SysTest.h"
 
-/// Defines the actually available test groups
-/// This enum is meant for documentation purposes and will
-/// be extended in the future.
+// Defines the functions of the test group SYS_TEST_TEST_GROUP_PRESENTATION
+/// This enum serves the documentation!
 typedef enum {
-  SYS_TEST_TEST_GROUP_FLASH = 0,
-  SYS_TEST_TEST_GROUP_ITEM_STORE,
-  SYS_TEST_TEST_GROUP_SCREEN,
-  SYS_TEST_TEST_GROUP_PRESENTATION
-} SysTest_TestGroups;
+  FUNCTION_ID_ADD_ITEM = 0,
+} ItemStore_FunctionId_t;
 
-/// Generic data structure that is given to test functions as argument
-typedef union _uSysTest_TestMessage {
-  uint8_t byteParameter[4];    ///< 8bit access to the data
-  uint16_t shortParameter[2];  ///< 16bit access to the data
-  uint32_t longParameter;      ///< 32bit access to the data
-} SysTest_TestMessageParameter_t;
+/// Add an item to the item store
+/// @param param parameters of the Flash_Erase function
+///              byteParameter[0] is the item to be added;
+///              the added data are hard coded
+///              byteParameter[1] is the number of items that shall be inserted
+void ItemStoreTest_AddItem(SysTest_TestMessageParameter_t param);
 
-/// Signature of any test function that can be hooked up to the test controller
-typedef void (*SysTest_TestFunctionCb_t)(SysTest_TestMessageParameter_t param);
-
-/// A message to hold information about test
-/// The contents of the message are not yet well defined.
-/// Its a showcase how to extend messages.
-typedef struct _tSysTest_Message {
-  MessageBroker_MsgHead_t head;         ///< Generic message header
-  SysTest_TestMessageParameter_t data;  ///< Data to be passed as arguments to
-                                        ///< the specified test function.
-} SysTest_Message_t;
-
-ASSERT_SIZE_TYPE1_LESS_THAN_TYPE2(SysTest_Message_t, uint64_t);
-
-/// Return an initialized instance to the system test controller
-/// @return Pointer to a message listener
-MessageListener_Listener_t* SysTest_TestControllerInstance();
-
-/// Get an object that may receive data from the UART
-/// @return a receiver object
-Uart_Receiver_t* SysTest_GetUartReceiver();
-
-#endif  // SYS_TEST_H
+#endif  // ITEM_STORE_TEST_H
