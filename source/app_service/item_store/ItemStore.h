@@ -40,6 +40,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/// Callback to notify the state of the enumerator as a response of a call
+/// to the function `ItemStore_BeginEnumerate`
+/// When the iterator is ready, it may be used to synchronously iterate through
+/// the elements in the item store.
+typedef void (*ItemStore_EnumeratorStatusCb_t)(bool ready);
+
 /// Ids of the defined info items that can be stored
 typedef enum {
   ITEM_DEF_SYSTEM_CONFIG = 0,
@@ -75,6 +81,10 @@ typedef union {
 /// Define an enumerator to enumerate all items of  an item store
 typedef struct _tItemStore_Enumerator {
   bool hasMoreItems;        ///< Flag indicating if more items are available
+  int32_t startIndex;       ///< Points to the start position where the
+                            ///< enumeration will start.
+                            ///< A negative index will denote a start index
+                            ///< relative to the end of the collection.
   void* enumeratorDetails;  ///< Internal implementation details of the
                             ///< enumerator
 } ItemStore_Enumerator_t;
@@ -96,33 +106,34 @@ void ItemStore_AddItem(ItemStore_ItemDef_t item,
                        const ItemStore_ItemStruct_t* data);
 
 /// Initialize an object to enumerate all items that are stored
-/// in the specified item store.
+/// in the specified item store. This operation is called asynchronously in
+/// order to not interfere with pending erase operations.
+/// The client is notified about the state of the enumerator with the
+/// callback  `onEnumeratorReadyCb`.
 /// As long as an enumerator is active, no new items can be added.
 /// @param item Id of the item store to enumerate
 /// @param enumerator Pointer to enumerator object that shall be initialized
+/// @param onDoneCb Callback that signals that the completion of the operation.
 void ItemStore_BeginEnumerate(ItemStore_ItemDef_t item,
-                              ItemStore_Enumerator_t* enumerator);
+                              ItemStore_Enumerator_t* enumerator,
+                              ItemStore_EnumeratorStatusCb_t onDoneCb);
 
 /// Close an initialized enumerator
 ///
-/// After closing the enumerator, new items may be added to the item store
-/// again.
+/// After each successful call to `ItemStore_BeginEnumerate()` this function
+/// has to be called to exit the enumerating state. Only after closing the
+/// an open enumerator, new items may be added to the item store.
+/// This operation is executed synchronously
 /// @param enumerator Pointer to enumerator object that shall be initialized
 void ItemStore_EndEnumerate(ItemStore_Enumerator_t* enumerator);
-
-/// Get the item that was added last to the item store
-/// @param item Id of the item store
-/// @param data Pointer to a data structure where the data will be copied
-/// @return true if the operation succeeded; false otherwise.
-bool ItemStore_GetNewestItem(ItemStore_ItemDef_t item,
-                             ItemStore_ItemStruct_t* data);
 
 /// Get the number of items that are stored in the specified item store
 /// @param enumerator Pointer to an initialized enumerator;
 /// @return number of available items in the item store
 uint16_t ItemStore_Count(ItemStore_Enumerator_t* enumerator);
 
-/// Access the next item in the item store
+/// Access the next item in the item store.
+/// This operation is executed synchronously.
 /// @param enumerator
 /// @param data Pointer to a data structure that can hold the next element
 ///             retrieved by the enumerator

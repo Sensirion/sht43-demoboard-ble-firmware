@@ -37,11 +37,16 @@
 #include "app/Presentation.h"
 #include "app_service/item_store/ItemStore.h"
 #include "app_service/timer_server/TimerServer.h"
+#include "utility/log/Trace.h"
 
 /// Parameter of the timerAddItem test
 static SysTest_TestMessageParameter_t _timerAddItemParameter;
+
 /// Id of the timer that is used to add items to the item store
 static uint8_t _timerAddItemId;
+
+/// parameter for test enumerator function
+static uint16_t _numberOfItemsToRead;
 
 /// Called when the add-item timer is elapsed
 static void OnTimerElapsed();
@@ -53,6 +58,20 @@ ItemStore_ItemStruct_t _testItemData[] = {
            .configuration.loggingInterval = 5000},
     [1] = {.measurement.sample = {{0xABCD, 0x0123}, {0x4567, 0x89AB}}}};
 
+/// Memory buffer to receive the data from the enumerator
+ItemStore_ItemStruct_t _testItemBuffer;
+
+/// Enumerator to read data from the flash
+ItemStore_Enumerator_t _enumerator;
+
+/// Callback function used as parameter for ItemStoreTest_BeginEnumerate
+/// @param status of the operation BeginEnumerate
+static void EnumeratorReadToEnd(bool status);
+
+/// Callback function used as parameter for ItemStoreTest_BeginEnumerate
+/// @param status of the operation BeginEnumerate
+static void EnumeratorReadCount(bool status);
+
 void ItemStoreTest_AddItem(SysTest_TestMessageParameter_t param) {
   // avoid overflow of message queue
   Presentation_setTimeStep(240);
@@ -62,16 +81,23 @@ void ItemStoreTest_AddItem(SysTest_TestMessageParameter_t param) {
   }
 }
 
-/// Starts a timer that inserts items into the item store
-/// @param param parameters of the Flash_Erase function
-///              byteParameter[0] is the item to be added;
-///              the added data are hard coded
-///              shortParameter[1] is the number of items that shall be inserted
 void ItemStoreTest_TimerAddItem(SysTest_TestMessageParameter_t param) {
   _timerAddItemParameter = param;
   _timerAddItemId =
       TimerServer_CreateTimer(TIMER_SERVER_MODE_REPEATED, OnTimerElapsed);
   TimerServer_Start(_timerAddItemId, 200);
+}
+
+void ItemStoreTest_EnumerateItems(SysTest_TestMessageParameter_t param) {
+  ItemStore_EnumeratorStatusCb_t callback = EnumeratorReadCount;
+  _enumerator.startIndex = 0;
+  _numberOfItemsToRead = param.shortParameter[1];
+  if (param.byteParameter[1] == 1) {
+    _enumerator.startIndex = (int16_t)param.shortParameter[1];
+    _numberOfItemsToRead = 0;
+    callback = EnumeratorReadToEnd;
+  }
+  ItemStore_BeginEnumerate(param.byteParameter[0], &_enumerator, callback);
 }
 
 static void OnTimerElapsed() {
@@ -83,4 +109,38 @@ static void OnTimerElapsed() {
   ItemStore_AddItem(_timerAddItemParameter.byteParameter[0],
                     &_testItemData[_timerAddItemParameter.byteParameter[0]]);
   _timerAddItemParameter.shortParameter[1]--;
+}
+
+static void EnumeratorReadToEnd(bool status) {
+  if (!status) {
+    Trace_Message("Enumerator was not initialized properly!");
+    ItemStore_EndEnumerate(&_enumerator);
+    return;
+  }
+  while (_enumerator.hasMoreItems) {
+    ItemStore_GetNext(&_enumerator, &_testItemBuffer);
+    _numberOfItemsToRead++;
+    Trace_Message("read items = %i\n", _numberOfItemsToRead);
+  }
+  Trace_Message("\n=>read to end done: read items = %i\n",
+                _numberOfItemsToRead);
+  ItemStore_EndEnumerate(&_enumerator);
+}
+
+static void EnumeratorReadCount(bool status) {
+  if (!status) {
+    Trace_Message("Enumerator was not initialized properly!\n");
+    ItemStore_EndEnumerate(&_enumerator);
+    return;
+  }
+  uint16_t readItems = 0;
+  while (_enumerator.hasMoreItems && readItems < _numberOfItemsToRead) {
+    ItemStore_GetNext(&_enumerator, &_testItemBuffer);
+    readItems++;
+    Trace_Message("read item; remaining = %i\n",
+                  _numberOfItemsToRead - readItems);
+  }
+  Trace_Message("\n=>read count from 0 done: read items = %i\n",
+                _numberOfItemsToRead);
+  ItemStore_EndEnumerate(&_enumerator);
 }

@@ -101,6 +101,26 @@ typedef struct {
   uint8_t nextPageId;  ///< next page id that will be used
 } PageCompleteTag_t;
 
+/// Describes the header of a page.
+/// This information is used to reconstruct the
+/// order of items after reset of the device.
+typedef struct {
+  PageBeginTag_t beginTag;        ///< Marks the begin of the page
+  PageCompleteTag_t completeTag;  ///< Marks the completeness of the page
+} PageHeader_t;
+
+/// Metadata to efficiently enumerate items from a specific item store.
+typedef struct {
+  PageHeader_t enumeratingPage;  ///< Page header of the current page
+  uint16_t currentIndex;         ///< Item index on the current page
+
+  uint16_t itemsOnPage;  ///< Number of items on this page
+  uint16_t itemsRead;    ///< Count of already read items
+  /// Number of items to skip (starting with the `oldest` item on the flash)
+  uint16_t itemsToSkip;
+  uint16_t totalNrOfItems;  ///< total number of items in this item store
+} EnumeratorStatus_t;
+
 /// Describe the data that are used to
 /// handle the page buffers for a specific item;
 typedef struct {
@@ -123,15 +143,12 @@ typedef struct {
   /// The state of the item store; the item store may be in the state
   /// enumerating or idle
   MessageListener_HandleReceivedMessageCb_t currentState;
+  /// Callback to notify about the status of the function
+  /// `ItemStore_BeginEnumerate()`
+  ItemStore_EnumeratorStatusCb_t enumeratorStatusCb;
+  /// Internal status of the current enumerator.
+  EnumeratorStatus_t enumeratorStatus;
 } ItemStoreInfo_t;
-
-/// Describes the header of a page.
-/// This information is used to reconstruct the
-/// order of items after reset of the device.
-typedef struct {
-  PageBeginTag_t beginTag;        ///< Marks the begin of the page
-  PageCompleteTag_t completeTag;  ///< Marks the completeness of the page
-} PageHeader_t;
 
 /// Parameter of the AddItem message
 typedef struct {
@@ -155,17 +172,20 @@ typedef enum {
   ITEM_STORE_MESSAGE_ERASE,
   /// Notify that the erase is done.
   ITEM_STORE_MESSAGE_ERASE_DONE,
-  /// Enumerate the items within an item store.
-  ITEM_STORE_MESSAGE_ENUMERATE
+  /// Begin to enumerate the items within an item store.
+  ITEM_STORE_MESSAGE_BEGIN_ENUMERATE
 } ItemStoreMessageId_t;
 
 /// Defines an ItemStore message;
 typedef struct {
   MessageBroker_MsgHead_t header;  ///< Message header
+  /// Message data
   union {
     const ItemStore_ItemStruct_t* addParameter;  ///< Parameter for add item
     EraseParameters_t eraseParameter;            ///< Parameter for erase page
-  } data;                                        ///< Message data
+    ItemStore_Enumerator_t* enumerateParameter;  ///< Parameter for begin
+                                                 ///< enumerate.
+  } data;
 } ItemStoreMessage_t;
 
 /// Idle state of the ItemStore Listener
@@ -183,12 +203,48 @@ static bool ListenerErasingState(Message_Message_t* message);
 /// @return true if the message was handled; false otherwise
 static bool IdleState(Message_Message_t* message);
 
+/// State of the item store while a client enumerates over its items.
+/// @param message The message to be dispatched
+/// @return true if the message was handled; false otherwise
+static bool EnumeratingState(Message_Message_t* message);
+
 /// Synchronously write an item to the flash
 /// @param item Selects the item store to write the data
 /// @param data The data that is written
 /// @return true if the operation succeeds; false otherwise
 static bool AddItem(ItemStore_ItemDef_t item,
                     const ItemStore_ItemStruct_t* data);
+
+/// Begin to enumerate the items in an item store
+///
+/// @param item Selects the item store to read from
+/// @param enumerator Pointer to the enumerator
+static void BeginEnumerate(ItemStore_ItemDef_t item,
+                           ItemStore_Enumerator_t* enumerator);
+
+/// Initialize the enumerator status from a page nr.
+///
+/// @param page_nr Page number to read information from it
+/// @param itemStore Item store that is enumerated.
+/// @param currentIndex Index on page where the read will start
+/// @return true if the enumerator was successfully initialized; false otherwise
+///         In case the flash page was not read the enumerator will not be
+///         initialized!
+static bool InitEnumeratorStatus(uint8_t page_nr,
+                                 ItemStoreInfo_t* itemStore,
+                                 uint16_t currentIndex);
+
+/// Compute the start page and item index within this page where
+/// the enumerator starts reading.
+///
+/// @param itemStore Pointer to item store
+/// @param [out] startPage Start page number where the enumerator will start
+///                        reading
+/// @param [out] startPosition Start item index within the selected page
+/// @return true if the operation succeeded; false otherwise.
+static bool FindEnumeratorStartPosition(ItemStoreInfo_t* itemStore,
+                                        uint8_t* startPage,
+                                        uint16_t* startPosition);
 
 /// Initialize the data structure of a single item store.
 /// This operation reconstructs the item store metadata from the contents of the
@@ -298,6 +354,179 @@ void ItemStore_AddItem(ItemStore_ItemDef_t item,
       .header.parameter1 = item,
       .data.addParameter = data};
   Message_PublishAppMessage((Message_Message_t*)&msg);
+}
+
+// Item store begin enumerate must run asynchronously since we cannot read from
+// flash, while an erase is ongoing
+void ItemStore_BeginEnumerate(ItemStore_ItemDef_t item,
+                              ItemStore_Enumerator_t* enumerator,
+                              ItemStore_EnumeratorStatusCb_t onDoneCb) {
+  ItemStoreMessage_t msg = {
+      .header.category = MESSAGE_BROKER_CATEGORY_ITEM_STORE,
+      .header.id = ITEM_STORE_MESSAGE_BEGIN_ENUMERATE,
+      .header.parameter1 = item,
+      .data.enumerateParameter = enumerator};
+  _itemStore[item].enumeratorStatusCb = onDoneCb;
+  Message_PublishAppMessage((Message_Message_t*)&msg);
+}
+
+void ItemStore_EndEnumerate(ItemStore_Enumerator_t* enumerator) {
+  if (enumerator->enumeratorDetails == 0) {
+    return;
+  }
+  EnumeratorStatus_t* status =
+      (EnumeratorStatus_t*)enumerator->enumeratorDetails;
+  if (status->enumeratingPage.beginTag.magic != PAGE_MAGIC) {
+    return;
+  }
+  ItemStoreInfo_t* itemStore =
+      &_itemStore[status->enumeratingPage.beginTag.itemId];
+  itemStore->currentState = IdleState;
+}
+
+void BeginEnumerate(ItemStore_ItemDef_t item,
+                    ItemStore_Enumerator_t* enumerator) {
+  ItemStoreInfo_t* itemStoreInfo = &_itemStore[item];
+  EnumeratorStatus_t* enumeratorStatus = &itemStoreInfo->enumeratorStatus;
+  enumeratorStatus->itemsRead = 0;
+
+  uint16_t itemsOnFullPage =
+      (FLASH_PAGE_SIZE - sizeof(PageHeader_t)) / itemStoreInfo->itemSize;
+  enumeratorStatus->totalNrOfItems =
+      (itemStoreInfo->currentPageNrOfItems +
+       itemStoreInfo->nrOfFullPages * itemsOnFullPage);
+
+  enumeratorStatus->itemsToSkip = enumerator->startIndex;
+  if (enumerator->startIndex < 0) {
+    enumeratorStatus->itemsToSkip =
+        enumeratorStatus->totalNrOfItems + enumerator->startIndex;
+  }
+  uint16_t startIndex = 0;
+  uint8_t startPage = 0;
+  if (!FindEnumeratorStartPosition(itemStoreInfo, &startPage, &startIndex)) {
+    enumerator->enumeratorDetails = 0;
+    enumerator->hasMoreItems = false;
+    itemStoreInfo->enumeratorStatusCb(false);
+    return;
+  }
+
+  if (!InitEnumeratorStatus(startPage, itemStoreInfo, startIndex)) {
+    enumerator->enumeratorDetails = 0;
+    enumerator->hasMoreItems = false;
+    itemStoreInfo->enumeratorStatusCb(false);
+    return;
+  }
+  enumerator->enumeratorDetails = &itemStoreInfo->enumeratorStatus;
+  enumerator->hasMoreItems = (itemStoreInfo->enumeratorStatus.itemsOnPage >
+                              itemStoreInfo->enumeratorStatus.currentIndex);
+  itemStoreInfo->currentState = EnumeratingState;
+  itemStoreInfo->enumeratorStatusCb(true);
+}
+
+static bool InitEnumeratorStatus(uint8_t page_nr,
+                                 ItemStoreInfo_t* itemStore,
+                                 uint16_t startIndex) {
+  EnumeratorStatus_t* status = &itemStore->enumeratorStatus;
+  status->currentIndex = startIndex;  // current read index on this page
+  if (!Flash_Read(PAGE_ADDR(page_nr), (uint8_t*)&status->enumeratingPage,
+                  sizeof(PageHeader_t))) {
+    return false;
+  }
+  if (!BEGIN_TAG_IS_CONSISTENT(itemStore, status->enumeratingPage, page_nr)) {
+    return false;
+  }
+  // we are reading how many items are on the page that we enumerate
+  if (page_nr == itemStore->nextWritePageInfo.pageId) {
+    // this is the page where new items are inserted
+    status->itemsOnPage = itemStore->currentPageNrOfItems;
+  } else {
+    // this is a full page
+    if (!COMPLETE_TAG_IS_CONSISTENT(itemStore, status->enumeratingPage,
+                                    page_nr)) {
+      return false;
+    }
+    status->itemsOnPage = status->enumeratingPage.completeTag.nrOfItems;
+  }
+  // if this is not true, we read over the end of the item store
+  return status->currentIndex < status->itemsOnPage;
+}
+
+static bool FindEnumeratorStartPosition(ItemStoreInfo_t* itemStore,
+                                        uint8_t* startPage,
+                                        uint16_t* startPosition) {
+  uint8_t page_nr = itemStore->oldestPageInfo.pageId;
+  int32_t skipping = itemStore->enumeratorStatus.itemsToSkip;
+  uint16_t itemsOnPage = 0;
+  do {
+    if (!Flash_Read(PAGE_ADDR(page_nr),
+                    (uint8_t*)&itemStore->enumeratorStatus.enumeratingPage,
+                    sizeof(PageHeader_t))) {
+      return false;
+    }
+    if (!BEGIN_TAG_IS_CONSISTENT(
+            itemStore, itemStore->enumeratorStatus.enumeratingPage, page_nr)) {
+      break;
+    }
+    // the page is complete
+    if (itemStore->enumeratorStatus.enumeratingPage.completeTag.magic ==
+        PAGE_MAGIC) {
+      itemsOnPage =
+          ((FLASH_PAGE_SIZE) - sizeof(PageHeader_t)) / itemStore->itemSize;
+      skipping -= itemsOnPage;
+    } else {
+      itemsOnPage = itemStore->currentPageNrOfItems;
+      skipping -= itemsOnPage;
+      break;
+    }
+    page_nr = itemStore->enumeratorStatus.enumeratingPage.completeTag.nextPage;
+  } while (skipping >= 0);
+
+  if (skipping > 0) {
+    return false;
+  }
+  *startPage = itemStore->enumeratorStatus.enumeratingPage.beginTag.pageId;
+  *startPosition = itemsOnPage + skipping;
+  return true;
+}
+
+bool ItemStore_GetNext(ItemStore_Enumerator_t* enumerator,
+                       ItemStore_ItemStruct_t* data) {
+  if (!enumerator->hasMoreItems) {
+    return false;
+  }
+  if (enumerator->enumeratorDetails == 0) {
+    return false;
+  }
+  EnumeratorStatus_t* status =
+      (EnumeratorStatus_t*)enumerator->enumeratorDetails;
+  ItemStoreInfo_t* itemStoreInfo =
+      &_itemStore[status->enumeratingPage.beginTag.itemId];
+
+  if (status->currentIndex == status->itemsOnPage) {
+    // all items of this page are read; move on to the next page
+    if (!InitEnumeratorStatus(
+            NEXT_PAGE_NR(itemStoreInfo,
+                         status->enumeratingPage.beginTag.pageId),
+            itemStoreInfo, 0)) {
+      enumerator->hasMoreItems = false;
+      return false;
+    }
+  }
+
+  uint32_t readAddress = PAGE_ADDR(status->enumeratingPage.beginTag.pageId) +
+                         status->currentIndex * itemStoreInfo->itemSize;
+  if (!Flash_Read(readAddress, (uint8_t*)data,
+                  status->enumeratingPage.beginTag.itemSize)) {
+    enumerator->hasMoreItems = false;
+    return false;
+  }
+  status->currentIndex++;
+  status->itemsRead++;
+
+  enumerator->hasMoreItems =
+      (status->itemsRead + status->itemsToSkip) < status->totalNrOfItems;
+
+  return true;
 }
 
 // Implement add item. Writing to flash is synchronous. In case a page gets full
@@ -538,16 +767,23 @@ static bool ListenerIdleState(Message_Message_t* message) {
 }
 
 static bool IdleState(Message_Message_t* message) {
+  ItemStoreMessage_t* msg = (ItemStoreMessage_t*)message;
   if (message->header.id == ITEM_STORE_MESSAGE_ADD_ITEM) {
-    ItemStoreMessage_t* msg = (ItemStoreMessage_t*)message;
     if (!AddItem(msg->header.parameter1, msg->data.addParameter)) {
       ErrorHandler_RecoverableError(ERROR_CODE_ITEM_STORE);
     }
     return true;
   }
-  if (message->header.id == ITEM_STORE_MESSAGE_ENUMERATE) {
+  if (message->header.id == ITEM_STORE_MESSAGE_BEGIN_ENUMERATE) {
+    BeginEnumerate(message->header.parameter1, msg->data.enumerateParameter);
     return true;
   }
+  return false;
+}
+
+static bool EnumeratingState(Message_Message_t* message) {
+  // in this state no messages are accepted. The item store is reserved
+  // for synchronous use with an initialized enumerator
   return false;
 }
 
