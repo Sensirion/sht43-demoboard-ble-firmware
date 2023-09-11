@@ -41,21 +41,31 @@
 /// This enum serves the documentation!
 typedef enum {
   FUNCTION_ID_ADD_ITEM = 0,
-  FUNCTION_ID_ADD_ITEMS_FROM_TIMER = 1
+  FUNCTION_ID_ADD_ITEMS_FROM_TIMER = 1,
+  FUNCTION_ID_ENUMERATE_ITEMS = 2
 } ItemStore_FunctionId_t;
 
 /// Add an item to the item store
-/// @param param parameters of the Flash_Erase function
+/// @param param parameters of the AddItem function
 ///              byteParameter[0] is the item to be added;
 ///              the added data are hard coded
 ///              byteParameter[1] is the number of items that shall be inserted
 void ItemStoreTest_AddItem(SysTest_TestMessageParameter_t param);
 
 /// Starts a timer that inserts items into the item store
-/// @param param parameters of the Flash_Erase function
+/// @param param parameters of the TimerAddItem function
 ///              byteParameter[0] is the item to be added;
 ///              the added data are hard coded
 ///              shortParameter[1] is the number of items that shall be inserted
 void ItemStoreTest_TimerAddItem(SysTest_TestMessageParameter_t param);
+
+/// Enumerate the
+/// @param param parameters of the EnumerateItems function
+///              byteParameter[0] is the item to be added;
+///              byteParameter[1] selects the semantics of next parameter
+///              shortParameter[1] depends on value of byteParameter[1]:
+///                 * 0 => number of items to be read from index 0
+///                 * 1 => items from start index until end of enumeration
+void ItemStoreTest_EnumerateItems(SysTest_TestMessageParameter_t param);
 
 #endif  // ITEM_STORE_TEST_H
