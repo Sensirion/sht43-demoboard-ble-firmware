@@ -86,13 +86,15 @@ void TemperatureService_SetTemperature(float temperature) {
 static void AddTemperatureCharacteristic(struct _tService* service) {
   BleTypes_Characteristic_t temperatureCharacteristic = {
       .uuid.uuidType = BLE_TYPES_UUID16,
-      .uuid.uuid.Char_UUID_16 = 2235,
+      .uuid.uuid.Char_UUID_16 = 0x2235,
       .maxValueLength = 4,
       .characteristicPropertyFlags = CHAR_PROP_READ | CHAR_PROP_NOTIFY,
       .securityFlags = ATTR_PERMISSION_NONE,
       .eventFlags = GATT_DONT_NOTIFY_EVENTS,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};
+  BleGatt_ExtendCharacteristicUuid(&temperatureCharacteristic.uuid,
+                                   &_temperatureServiceId);
 
   // set initial serial temperature
   float initialTemperature = NAN;

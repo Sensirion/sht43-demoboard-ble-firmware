@@ -83,3 +83,13 @@ tBleStatus BleGatt_UpdateCharacteristic(uint16_t serviceHandle,
 
   return status;
 }
+
+/// Build characteristic uuid from a service uuid and a 16-bit characteristic
+/// id.
+void BleGatt_ExtendCharacteristicUuid(BleTypes_Uuid_t* characteristicId,
+                                      BleTypes_Uuid_t* serviceId) {
+  uint16_t id = characteristicId->uuid.Char_UUID_16;
+  memcpy(characteristicId, serviceId, sizeof(BleTypes_Uuid_t));
+  characteristicId->uuid.Char_UUID_128[13] = (id >> 8) & 0xFF;
+  characteristicId->uuid.Char_UUID_128[12] = id & 0xFF;
+}
