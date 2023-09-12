@@ -52,6 +52,23 @@ typedef enum {
   ITEM_DEF_MEASUREMENT_SAMPLE
 } ItemStore_ItemDef_t;
 
+/// Defines the messages that are used by the item store.
+/// Since other controllers  need to know when it is possible to add items
+/// this enum is public.
+typedef enum {
+  /// Add a new item to the item store.
+  /// Adding new items is not possible while enumerating or erasing.
+  ITEM_STORE_MESSAGE_ADD_ITEM = 0,
+  /// Erase a page if no space is left.
+  /// It is not possible to start an erase while another erase is ongoing or
+  /// while enumerating an item store.
+  ITEM_STORE_MESSAGE_ERASE,
+  /// Notify that the erase is done.
+  ITEM_STORE_MESSAGE_ERASE_DONE,
+  /// Begin to enumerate the items within an item store.
+  ITEM_STORE_MESSAGE_BEGIN_ENUMERATE
+} ItemStore_MessageId_t;
+
 /// Structure definition of item 'Configuration'
 ///
 /// This structure is not yet finalized!
