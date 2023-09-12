@@ -37,6 +37,15 @@
 
 #include "app_service/networking/ble/BleTypes.h"
 
+/// Build characteristic uuid from a service uuid and a 16-bit characteristic
+/// id.
+/// @param characteristicId Pointer to the characteristic id; The 16bit id is
+///                         assumed to be set
+/// @param serviceId Pointer to the service id, the characteristic uuid is
+///                  extended from.
+void BleGatt_ExtendCharacteristicUuid(BleTypes_Uuid_t* characteristicId,
+                                      BleTypes_Uuid_t* serviceId);
+
 /// Add a gatt service with specified uuid and a max number of characteristics
 ///
 /// This method service as facade to the function aci_gatt_add_service()

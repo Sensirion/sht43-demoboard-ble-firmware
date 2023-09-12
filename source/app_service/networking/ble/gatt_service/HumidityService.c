@@ -85,14 +85,15 @@ void HumidityService_SetHumidity(float humidity) {
 
 static void AddHumidityCharacteristic(struct _tService* service) {
   BleTypes_Characteristic_t humidityCharacteristic = {
-      .uuid.uuidType = BLE_TYPES_UUID16,
-      .uuid.uuid.Char_UUID_16 = 1235,
+      .uuid.uuid.Char_UUID_16 = 0x1235,
       .maxValueLength = 4,
       .characteristicPropertyFlags = CHAR_PROP_READ | CHAR_PROP_NOTIFY,
       .securityFlags = ATTR_PERMISSION_NONE,
       .eventFlags = GATT_DONT_NOTIFY_EVENTS,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};
+  BleGatt_ExtendCharacteristicUuid(&humidityCharacteristic.uuid,
+                                   &_humidityServiceId);
 
   // set initial humidity
   float initialHumidity = NAN;

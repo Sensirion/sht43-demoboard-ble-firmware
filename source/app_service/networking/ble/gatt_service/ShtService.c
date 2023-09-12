@@ -80,14 +80,15 @@ void ShtService_SetSerialNumber(uint32_t serialNumber) {
 
 static void AddSerialNumberCharacteristic(struct _tService* service) {
   BleTypes_Characteristic_t serialNumberCharacteristic = {
-      .uuid.uuidType = BLE_TYPES_UUID16,
-      .uuid.uuid.Char_UUID_16 = 6001,
+      .uuid.uuid.Char_UUID_16 = 0x6001,
       .maxValueLength = 4,
       .characteristicPropertyFlags = CHAR_PROP_READ,
       .securityFlags = ATTR_PERMISSION_NONE,
       .eventFlags = GATT_DONT_NOTIFY_EVENTS,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};
+  BleGatt_ExtendCharacteristicUuid(&serialNumberCharacteristic.uuid,
+                                   &_sthServiceId);
 
   // set initial serial number
   uint32_t serialNumberInit = 0;
