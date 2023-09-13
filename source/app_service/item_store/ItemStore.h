@@ -146,8 +146,9 @@ void ItemStore_EndEnumerate(ItemStore_Enumerator_t* enumerator);
 
 /// Get the number of items that are stored in the specified item store
 /// @param enumerator Pointer to an initialized enumerator;
-/// @return number of available items in the item store
-uint16_t ItemStore_Count(ItemStore_Enumerator_t* enumerator);
+/// @return Number of available items in the
+///         item store if the enumerator is valid; -1 otherwise
+int32_t ItemStore_Count(ItemStore_Enumerator_t* enumerator);
 
 /// Access the next item in the item store.
 /// This operation is executed synchronously.

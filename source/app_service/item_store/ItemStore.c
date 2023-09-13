@@ -514,6 +514,15 @@ bool ItemStore_GetNext(ItemStore_Enumerator_t* enumerator,
   return true;
 }
 
+int32_t ItemStore_Count(ItemStore_Enumerator_t* enumerator) {
+  if (enumerator->enumeratorDetails == 0) {
+    return -1;
+  }
+  EnumeratorStatus_t* status =
+      (EnumeratorStatus_t*)enumerator->enumeratorDetails;
+  return status->totalNrOfItems;
+}
+
 // Implement add item. Writing to flash is synchronous. In case a page gets full
 // an erase may be required to make another page free for next insert.
 // This is then an asynchronous operation.
