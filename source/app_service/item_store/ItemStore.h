@@ -66,7 +66,10 @@ typedef enum {
   /// Notify that the erase is done.
   ITEM_STORE_MESSAGE_ERASE_DONE,
   /// Begin to enumerate the items within an item store.
-  ITEM_STORE_MESSAGE_BEGIN_ENUMERATE
+  ITEM_STORE_MESSAGE_BEGIN_ENUMERATE,
+  /// Signal the end of the enumerate operation.
+  /// Clients of the item store need to know when they can add items again.
+  ITEM_STORE_MESSAGE_END_ENUMERATE
 } ItemStore_MessageId_t;
 
 /// Structure definition of item 'Configuration'

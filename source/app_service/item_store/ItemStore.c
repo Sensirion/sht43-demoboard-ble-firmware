@@ -367,6 +367,12 @@ void ItemStore_EndEnumerate(ItemStore_Enumerator_t* enumerator) {
   ItemStoreInfo_t* itemStore =
       &_itemStore[status->enumeratingPage.beginTag.itemId];
   itemStore->currentState = IdleState;
+  ItemStoreMessage_t msg = {
+      .header.category = MESSAGE_BROKER_CATEGORY_ITEM_STORE,
+      .header.id = ITEM_STORE_MESSAGE_END_ENUMERATE,
+      .header.parameter1 = status->enumeratingPage.beginTag.itemId,
+      .data.enumerateParameter = 0};
+  Message_PublishAppMessage((Message_Message_t*)&msg);
 }
 
 void BeginEnumerate(ItemStore_ItemDef_t item,
