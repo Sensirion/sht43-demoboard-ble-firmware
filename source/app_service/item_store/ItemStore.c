@@ -161,21 +161,6 @@ typedef struct {
   uint8_t nrOfPages;   ///< Number of pages to erase
 } EraseParameters_t;
 
-/// Messages that can be sent
-typedef enum {
-  /// Add a new item to the item store.
-  /// Adding new items is not possible while enumerating or erasing.
-  ITEM_STORE_MESSAGE_ADD_ITEM = 0,
-  /// Erase a page if no space is left.
-  /// It is not possible to start an erase while another erase is ongoing or
-  /// while enumerating an item store.
-  ITEM_STORE_MESSAGE_ERASE,
-  /// Notify that the erase is done.
-  ITEM_STORE_MESSAGE_ERASE_DONE,
-  /// Begin to enumerate the items within an item store.
-  ITEM_STORE_MESSAGE_BEGIN_ENUMERATE
-} ItemStoreMessageId_t;
-
 /// Defines an ItemStore message;
 typedef struct {
   MessageBroker_MsgHead_t header;  ///< Message header
