@@ -93,3 +93,29 @@ void BleGatt_ExtendCharacteristicUuid(BleTypes_Uuid_t* characteristicId,
   characteristicId->uuid.Char_UUID_128[13] = (id >> 8) & 0xFF;
   characteristicId->uuid.Char_UUID_128[12] = id & 0xFF;
 }
+
+SVCCTL_EvtAckStatus_t BleGatt_HandleBleCoreEvent(
+    evt_blecore_aci* event,
+    BleGatt_ServiceCharacteristic_t* characteristics,
+    uint8_t nrOfCharacteristics) {
+  aci_gatt_attribute_modified_event_rp0* modified_attr =
+      (aci_gatt_attribute_modified_event_rp0*)event->data;
+  for (uint8_t i = 0; i < nrOfCharacteristics; i++) {
+    if (modified_attr->Attr_Handle == characteristics[i].handle + 1) {
+      switch (event->ecode) {
+        case ACI_GATT_ATTRIBUTE_MODIFIED_VSEVT_CODE:
+          return characteristics[i].onWrite(modified_attr->Connection_Handle,
+                                            modified_attr->Attr_Data,
+                                            modified_attr->Attr_Data_Length);
+        case ACI_GATT_READ_PERMIT_REQ_VSEVT_CODE:
+          return characteristics[i].onRead(modified_attr->Connection_Handle,
+                                           modified_attr->Attr_Data,
+                                           modified_attr->Attr_Data_Length);
+        default:
+          break;
+      }
+    }
+  }
+
+  return SVCCTL_EvtNotAck;
+}
