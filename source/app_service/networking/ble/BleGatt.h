@@ -37,6 +37,39 @@
 
 #include "app_service/networking/ble/BleTypes.h"
 
+/// Defines the messages that are coming from a BLE service to the application.
+///
+/// Not all getters require a specific request since these data is published
+/// without asking for it.
+typedef enum {
+  SERVICE_REQUEST_MESSAGE_ID_GET_LOGGING_INTERVAL,
+  SERVICE_REQUEST_MESSAGE_ID_SET_LOGGING_INTERVAL,
+  SERVICE_REQUEST_MESSAGE_ID_GET_AVAILABLE_SAMPLES,
+  SERVICE_REQUEST_MESSAGE_ID_SET_REQUESTED_SAMPLES,
+  SERVICE_REQUEST_MESSAGE_ID_SET_GADGET_NAME,
+} BleGatt_ServiceRequestMessageId_t;
+
+/// Defines the signature of an event handler that is associated with
+/// a characteristic.
+typedef SVCCTL_EvtAckStatus_t (*BleGatt_ClientRequestHandlerCb_t)(
+    uint16_t connectionHandle,
+    uint8_t* data,
+    uint8_t dataLength);
+
+/// Represents a service characteristic that reacts on ble events
+/// When declaring the characteristics the eventFlags need to be set
+/// appropriately.
+typedef struct _tBleGatt_ServiceCharacteristic {
+  uint16_t handle;  ///< The handle of the characteristic
+  /// The callback that is invoked if a read is signalled by the ble core.
+  /// eventFlag = GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP
+  BleGatt_ClientRequestHandlerCb_t onRead;
+  /// The callback that is invoked if a write is signalled by the ble core
+  /// eventFlag = GATT_NOTIFY_ATTRIBUTE_WRITE or
+  /// GATT_NOTIFY_WRITE_REQ_AND_WAIT_FOR_APPL_RESP
+  BleGatt_ClientRequestHandlerCb_t onWrite;
+} BleGatt_ServiceCharacteristic_t;
+
 /// Build characteristic uuid from a service uuid and a 16-bit characteristic
 /// id.
 /// @param characteristicId Pointer to the characteristic id; The 16bit id is
@@ -89,5 +122,17 @@ tBleStatus BleGatt_UpdateCharacteristic(uint16_t serviceHandle,
                                         uint16_t characteristicHandle,
                                         uint8_t* value,
                                         uint16_t valueLength);
+
+/// Helper function to support the implementation of service specific
+/// event handlers.
+/// @param event Event received from the BLE core
+/// @param characteristics Array of characteristics that may handle the event
+/// @param nrOfCharacteristics Size of the characteristic table
+/// @return Status of the handler. This information is used by the BLE core
+///         in order to continue with the client request handling.
+SVCCTL_EvtAckStatus_t BleGatt_HandleBleCoreEvent(
+    evt_blecore_aci* event,
+    BleGatt_ServiceCharacteristic_t* characteristics,
+    uint8_t nrOfCharacteristics);
 
 #endif  // BLE_GATT_H
