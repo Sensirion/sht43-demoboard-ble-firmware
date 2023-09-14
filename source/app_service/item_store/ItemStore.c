@@ -367,6 +367,12 @@ void ItemStore_EndEnumerate(ItemStore_Enumerator_t* enumerator) {
   ItemStoreInfo_t* itemStore =
       &_itemStore[status->enumeratingPage.beginTag.itemId];
   itemStore->currentState = IdleState;
+  ItemStoreMessage_t msg = {
+      .header.category = MESSAGE_BROKER_CATEGORY_ITEM_STORE,
+      .header.id = ITEM_STORE_MESSAGE_END_ENUMERATE,
+      .header.parameter1 = status->enumeratingPage.beginTag.itemId,
+      .data.enumerateParameter = 0};
+  Message_PublishAppMessage((Message_Message_t*)&msg);
 }
 
 void BeginEnumerate(ItemStore_ItemDef_t item,
@@ -512,6 +518,15 @@ bool ItemStore_GetNext(ItemStore_Enumerator_t* enumerator,
       (status->itemsRead + status->itemsToSkip) < status->totalNrOfItems;
 
   return true;
+}
+
+int32_t ItemStore_Count(ItemStore_Enumerator_t* enumerator) {
+  if (enumerator->enumeratorDetails == 0) {
+    return -1;
+  }
+  EnumeratorStatus_t* status =
+      (EnumeratorStatus_t*)enumerator->enumeratorDetails;
+  return status->totalNrOfItems;
 }
 
 // Implement add item. Writing to flash is synchronous. In case a page gets full
