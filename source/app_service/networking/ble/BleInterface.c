@@ -40,6 +40,7 @@
 #include "BleHelper.h"
 #include "BleTypes.h"
 #include "app_service/networking/ble/gatt_service/BatteryService.h"
+#include "app_service/networking/ble/gatt_service/DataLoggerService.h"
 #include "app_service/networking/ble/gatt_service/DeviceInfo.h"
 #include "app_service/networking/ble/gatt_service/HumidityService.h"
 #include "app_service/networking/ble/gatt_service/Reboot.h"
@@ -148,6 +149,7 @@ void BleInterface_Start(BleTypes_ApplicationContext_t* appContext) {
   HumidityService_Create();
   BatteryService_Create();
   Reboot_Create();
+  DataLoggerService_Create();
 }
 
 void __attribute__((weak))

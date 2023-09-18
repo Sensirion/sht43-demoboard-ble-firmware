@@ -39,9 +39,11 @@
 
 #include "app_service/networking/HciTransport.h"
 #include "app_service/networking/ble/BleGap.h"
+#include "app_service/networking/ble/BleGatt.h"
 #include "app_service/networking/ble/BleHelper.h"
 #include "app_service/networking/ble/BleInterface.h"
 #include "app_service/networking/ble/gatt_service/BatteryService.h"
+#include "app_service/networking/ble/gatt_service/DataLoggerService.h"
 #include "app_service/networking/ble/gatt_service/HumidityService.h"
 #include "app_service/networking/ble/gatt_service/ShtService.h"
 #include "app_service/networking/ble/gatt_service/TemperatureService.h"
@@ -115,6 +117,11 @@ static bool ForwardToBleAppCb(Message_Message_t* message);
 ///
 /// @param readoutIntervalS new readout interval
 static void HandleReadoutIntervalChange(uint8_t readoutIntervalS);
+
+/// Handle the response from the application to a service request
+/// @param message message to be processed
+/// @return true if the response was handled, false otherwise.
+static bool HandleServiceRequestResponse(Message_Message_t* message);
 
 /// Struct to store all user defined information for BLE operations
 static BleTypes_ApplicationContext_t gBleApplicationContext = {
@@ -348,6 +355,12 @@ static bool BleDefaultStateCb(Message_Message_t* message) {
                               bleMsg->parameter.advertisementMode);
       return true;
     }
+    if (message->header.id == BLE_INTERFACE_MSG_ID_SVC_REQ_RESPONSE) {
+      // Responses to service request need to be handled
+      // the BleTask as this might involve blocking the task until receiving
+      // response back from CPU2.
+      return HandleServiceRequestResponse(message);
+    }
   }
 
   // react on ble events (start stop advertizing)
@@ -463,4 +476,16 @@ static void HandleReadoutIntervalChange(uint8_t readoutIntervalS) {
                .category = MESSAGE_BROKER_CATEGORY_BLE_EVENT},
       .parameter.advertisementMode = newMode};
   BleInterface_PublishBleMessage((Message_Message_t*)&newMsg);
+}
+
+static bool HandleServiceRequestResponse(Message_Message_t* message) {
+  BleInterface_Message_t* bleMsg = (BleInterface_Message_t*)message;
+
+  if (bleMsg->head.parameter1 ==
+      SERVICE_REQUEST_MESSAGE_ID_GET_LOGGING_INTERVAL) {
+    DataLoggerService_UpdateDataLoggingIntervalCharacteristic(
+        bleMsg->parameter.responseData);
+    return true;
+  }
+  return false;
 }

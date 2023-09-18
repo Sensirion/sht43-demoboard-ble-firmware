@@ -36,6 +36,7 @@
 
 #include "ItemStore.h"
 #include "app_service/networking/ble/BleGatt.h"
+#include "app_service/networking/ble/BleInterface.h"
 #include "app_service/sensor/Sht4x.h"
 #include "utility/scheduler/MessageId.h"
 
@@ -58,6 +59,10 @@ typedef struct _tMeasurementItemController {
   float coefficient[2];
   /// flag to indicate if items can be added to the item store
   bool isAddItemPossible;
+  /// Count number of pending erases. When we set the logging interval when
+  /// a page wrap happens, we might end up in a situation where we have two
+  /// erase done messages!
+  int8_t nrOfPendingErase;
   /// flag to indicate that a new sample is ready to be inserted into the item store
   bool isSampleReady;
   /// current sample index
@@ -79,6 +84,13 @@ static void UpdateMovingAverage(Sht4x_SensorMessage_t* message);
 /// @param msg The message with the amount of elapsed seconds
 /// @param canAddItem flag to tell if item can be saved to item store or not
 static void EvalTimeEvent(Message_Message_t* msg, bool canAddItem);
+
+/// Handle the request from a BLE gatt service.
+/// The function evaluates the request and sends back the requested information
+/// to the BLE context if needed.
+/// @param msg Message that contains the information about the request
+/// @return true if the message was handled; false otherwise.
+static bool HandleBleServiceRequest(Message_Message_t* msg);
 
 /// Add ready samples to the item store
 /// @param canAddItem Flag to indicate if item store is ready to save items.
@@ -117,14 +129,24 @@ static bool ItemStoreIdleState(Message_Message_t* msg) {
   }
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_ITEM_STORE) {
     if (msg->header.id == ITEM_STORE_MESSAGE_ERASE) {
+      _measurementItemController.nrOfPendingErase++;
       _measurementItemController.isAddItemPossible = false;
       return true;
     }
     if (msg->header.id == ITEM_STORE_MESSAGE_ERASE_DONE) {
-      _measurementItemController.isAddItemPossible = true;
+      _measurementItemController.nrOfPendingErase--;
+      // that should actually never happen
+      if (_measurementItemController.nrOfPendingErase < 0) {
+        _measurementItemController.nrOfPendingErase = 0;
+      }
+      _measurementItemController.isAddItemPossible =
+          (_measurementItemController.nrOfPendingErase == 0);
       SaveReadySamples(true);
       return true;
     }
+  }
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_BLE_SERVICE_REQUEST) {
+    return HandleBleServiceRequest(msg);
   }
   return false;
 }
@@ -173,4 +195,35 @@ static void SaveReadySamples(bool canAddItem) {
         (ItemStore_ItemStruct_t*)&_measurementItemController.samples);
     _measurementItemController.isSampleReady = false;
   }
+}
+
+static bool HandleBleServiceRequest(Message_Message_t* message) {
+  if (message->header.id == SERVICE_REQUEST_MESSAGE_ID_GET_LOGGING_INTERVAL) {
+    BleInterface_Message_t msg = {
+        .head.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT,
+        .head.id = BLE_INTERFACE_MSG_ID_SVC_REQ_RESPONSE,
+        .head.parameter1 = SERVICE_REQUEST_MESSAGE_ID_GET_LOGGING_INTERVAL,
+        .parameter.responseData =
+            _measurementItemController.loggingIntervalS * 1000};
+    BleInterface_PublishBleMessage((Message_Message_t*)&msg);
+    return true;
+  }
+  if (message->header.id == SERVICE_REQUEST_MESSAGE_ID_SET_LOGGING_INTERVAL) {
+    // we allow logging intervals only to be a multiple of 10s
+    uint32_t newInterval = message->parameter2 / 10000 * 10;
+    if (newInterval < 10) {
+      newInterval = 10;
+    }
+    if (newInterval != _measurementItemController.loggingIntervalS) {
+      _measurementItemController.loggingIntervalS = newInterval;
+      // accumulate at most over one hour
+      float divider = MIN(newInterval, 3600) / 5.0f;
+      _measurementItemController.coefficient[1] = 1.0f / divider;
+      _measurementItemController.coefficient[0] =
+          1.0f - _measurementItemController.coefficient[1];
+      ItemStore_DeleteAllItems(ITEM_DEF_MEASUREMENT_SAMPLE);
+    }
+    return true;
+  }
+  return false;
 }
