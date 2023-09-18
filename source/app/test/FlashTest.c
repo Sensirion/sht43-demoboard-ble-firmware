@@ -55,7 +55,9 @@ static uint8_t _testBuffer[32];
 
 /// Callback to indicate the completion of the erase operation
 /// @param pageId the page id that was erased.
-static void EraseDoneCallback(uint32_t pageId);
+/// @param remaining number of pages that have not been erased
+///                  on a successful operation this should be 0.
+static void EraseDoneCallback(uint32_t pageId, uint8_t remaining);
 
 void FlashTest_Erase(SysTest_TestMessageParameter_t param) {
   Flash_Erase(FLASH_TEST_PAGE_0 + param.byteParameter[0],
@@ -84,6 +86,7 @@ void FlashTest_Write(SysTest_TestMessageParameter_t param) {
   Uart_WriteBlocking(_testBuffer, nrOfBytes);
 }
 
-static void EraseDoneCallback(uint32_t pageId) {
+static void EraseDoneCallback(uint32_t pageId, uint8_t remaining) {
+  UNUSED(remaining);
   LOG_INFO("Erase done %li", pageId);
 }

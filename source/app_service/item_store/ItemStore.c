@@ -155,19 +155,13 @@ typedef struct {
   ItemStore_ItemStruct_t* data;  ///< Content to be written to the item store
 } AddItemParameters_t;
 
-/// Parameter of the ErasePage message
-typedef struct {
-  uint8_t pageNumber;  ///< Number of page where the erase starts
-  uint8_t nrOfPages;   ///< Number of pages to erase
-} EraseParameters_t;
-
 /// Defines an ItemStore message;
 typedef struct {
   MessageBroker_MsgHead_t header;  ///< Message header
   /// Message data
   union {
     const ItemStore_ItemStruct_t* addParameter;  ///< Parameter for add item
-    EraseParameters_t eraseParameter;            ///< Parameter for erase page
+    ItemStore_EraseParameters_t eraseParameter;  ///< Parameter for erase page
     ItemStore_Enumerator_t* enumerateParameter;  ///< Parameter for begin
                                                  ///< enumerate.
   } data;
@@ -289,9 +283,10 @@ static void UpdateNewestOldestPage(ItemStoreInfo_t* itemStoreInfo,
 static bool AdjustNextWritePage(ItemStoreInfo_t* itemStoreInfo,
                                 PageCompleteTag_t* completeTag);
 
-/// Callback that indicates the completion of a page erase
+/// Callback that indicates the completion of a page erase.
 /// @param pageId The page id of the erased page.
-static void FlashEraseDoneCb(uint32_t pageId);
+/// @param remaining Number of pages that where not erased.
+static void FlashEraseDoneCb(uint32_t pageId, uint8_t remaining);
 
 /// list metadata of item stores
 ItemStoreInfo_t _itemStore[] = {
@@ -313,9 +308,13 @@ MessageListener_Listener_t _messageListener = {
     .currentMessageHandlerCb = ListenerIdleState,
     .receiveMask = MESSAGE_BROKER_CATEGORY_ITEM_STORE};
 
+/// When the erase is done, we still want to know what where the parameters
+/// When the item store was emptied we need to call the initialization again!
+ItemStore_EraseParameters_t _eraseParameters;
+
 /// Reminder of an erase operation that cannot be handled at the time
 /// it was requested.
-EraseParameters_t _eraseReminder;
+ItemStore_EraseParameters_t _eraseReminder;
 
 /// Get the ItemStore message listener
 /// @return Pointer to the ItemStore_Listener
@@ -338,6 +337,18 @@ void ItemStore_AddItem(ItemStore_ItemDef_t item,
       .header.id = ITEM_STORE_MESSAGE_ADD_ITEM,
       .header.parameter1 = item,
       .data.addParameter = data};
+  Message_PublishAppMessage((Message_Message_t*)&msg);
+}
+
+// All pages that belong to this item store will be erased
+void ItemStore_DeleteAllItems(ItemStore_ItemDef_t item) {
+  ItemStoreMessage_t msg = {
+      .header.category = MESSAGE_BROKER_CATEGORY_ITEM_STORE,
+      .header.id = ITEM_STORE_MESSAGE_ERASE,
+      .data.eraseParameter = {.itemStore = item,
+                              .reinit = true,
+                              .pageNumber = _itemStore[item].firstPage,
+                              .nrOfPages = _itemStore[item].nrOfPages}};
   Message_PublishAppMessage((Message_Message_t*)&msg);
 }
 
@@ -748,7 +759,9 @@ static bool AdjustNextWritePage(ItemStoreInfo_t* itemStoreInfo,
   ItemStoreMessage_t msg = {
       .header.category = MESSAGE_BROKER_CATEGORY_ITEM_STORE,
       .header.id = ITEM_STORE_MESSAGE_ERASE,
-      .data.eraseParameter = {.pageNumber = completeTag->nextPage,
+      .data.eraseParameter = {.itemStore = header.beginTag.itemId,
+                              .reinit = false,
+                              .pageNumber = completeTag->nextPage,
                               .nrOfPages = 1}};
   Message_PublishAppMessage((Message_Message_t*)&msg);
   return true;
@@ -758,8 +771,9 @@ static bool ListenerIdleState(Message_Message_t* message) {
   ASSERT(message->header.parameter1 < 2);
   ItemStoreMessage_t* msg = (ItemStoreMessage_t*)message;
   if (message->header.id == ITEM_STORE_MESSAGE_ERASE) {
-    Flash_Erase(msg->data.eraseParameter.pageNumber,
-                msg->data.eraseParameter.nrOfPages, FlashEraseDoneCb);
+    _eraseParameters = msg->data.eraseParameter;
+    Flash_Erase(_eraseParameters.pageNumber, _eraseParameters.nrOfPages,
+                FlashEraseDoneCb);
     _messageListener.currentMessageHandlerCb = ListenerErasingState;
     return true;
   }
@@ -797,20 +811,28 @@ static bool ListenerErasingState(Message_Message_t* message) {
   }
   if (message->header.id == ITEM_STORE_MESSAGE_ERASE_DONE) {
     if (_eraseReminder.pageNumber > 0) {
-      Flash_Erase(_eraseReminder.pageNumber, _eraseReminder.nrOfPages,
+      _eraseParameters = _eraseReminder;
+      Flash_Erase(_eraseParameters.pageNumber, _eraseParameters.nrOfPages,
                   FlashEraseDoneCb);
       _eraseReminder.pageNumber = 0;
     } else {
       _messageListener.currentMessageHandlerCb = ListenerIdleState;
+      if (_eraseParameters.reinit) {
+        ItemStore_ItemDef_t id = _eraseParameters.itemStore;
+        InitItemStore(&_itemStore[id], id);
+      }
     }
     return true;
   }
   return false;
 }
 
-static void FlashEraseDoneCb(uint32_t pageId) {
+static void FlashEraseDoneCb(uint32_t pageId, uint8_t remaining) {
   Message_Message_t message = {
       .header.category = MESSAGE_BROKER_CATEGORY_ITEM_STORE,
       .header.id = ITEM_STORE_MESSAGE_ERASE_DONE};
+  // clang-tidy is wrong with its size computation for this architecture :-(
+  //NOLINTNEXTLINE
+  memcpy(&message.parameter2, &_eraseParameters, sizeof(_eraseParameters));
   Message_PublishAppMessage(&message);
 }

@@ -103,7 +103,7 @@ static SysTest_TestFunctionCb_t _flashTestFunctions[] = {
 /// Test functions to test the LCD screen
 static SysTest_TestFunctionCb_t _itemStoreTestFunctions[] = {
     ItemStoreTest_AddItem, ItemStoreTest_TimerAddItem,
-    ItemStoreTest_EnumerateItems};
+    ItemStoreTest_EnumerateItems, ItemStoreTest_DeleteAllItems};
 
 /// Array with test function pointers
 static SysTest_TestFunctionCb_t* _allTests[] = {

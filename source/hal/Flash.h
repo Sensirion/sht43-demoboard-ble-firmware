@@ -35,14 +35,29 @@
 ///
 /// Defines high level routines to read and write from  the internal flash.
 ///
+/// The flash requires it's own task in order to support erasing multiple pages.
+/// Even though the HAL supports erasing multiple pages in one step, this is not
+/// allowed within an application that has ongoing BLE activity.
+///
+/// Therefore an erase of multiple pages is processed as a
+/// sequence of single page erases.
+/// Before each erase it needs to be checked, if the access to the flash is
+/// allowed.
+/// In case access to flash is blocked, the erase operation has to be stopped
+/// and can only be resumed upon receiving the notification that the
+/// corresponding semaphore has become free.
+///
 #ifndef FLASH_H
 #define FLASH_H
 
 #include <stdbool.h>
 #include <stdint.h>
 
-/// callback to receive flash
-typedef void (*Flash_OperationComplete)(uint32_t parameter);
+/// Callback to receive the status of the flash erase operation
+/// The parameter pageNr holds the first Page that is erased or -1 if an error
+/// occurred. The parameter remaining returns the nrOfPages that where NOT
+/// erased. In case of a successful execution this parameter should be 0.
+typedef void (*Flash_OperationComplete)(uint32_t pageNr, uint8_t remaining);
 
 /// Initialize the flash
 ///
@@ -70,6 +85,8 @@ bool Flash_Read(uint32_t address, uint8_t* buffer, uint16_t nrOfBytes);
 bool Flash_Write(uint32_t address, const uint8_t* buffer, uint16_t nrOfBytes);
 
 /// Erase one or several pages staring from a specific page number
+/// The pages are erased one by one. The callback is invoked only after
+/// all pages are erased.
 /// @param startPageNr First page to erase
 /// @param nrOfPages Number of pages to erase; must be bigger than 0!
 /// @param callback The callback indicates the end of the erase operation.
