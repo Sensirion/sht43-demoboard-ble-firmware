@@ -35,6 +35,7 @@
 #ifndef ITEM_STORE_H
 #define ITEM_STORE_H
 
+#include "utility/StaticCodeAnalysisHelper.h"
 #include "utility/scheduler/MessageListener.h"
 
 #include <stdbool.h>
@@ -113,6 +114,17 @@ typedef struct _tItemStore_Enumerator {
 /// @return Message listener that handles massages for the item stores
 MessageListener_Listener_t* ItemStore_ListenerInstance();
 
+/// Parameter of an erase message
+typedef struct {
+  ItemStore_ItemDef_t itemStore;  ///< Item store on which the erase takes place
+  bool reinit;                    ///< Flag if initialization is required
+                                  ///< after erase.
+  uint8_t pageNumber;             ///< Number of page where the erase starts
+  uint8_t nrOfPages;              ///< Number of pages to erase
+} ItemStore_EraseParameters_t;
+
+ASSERT_SIZE_TYPE1_LESS_THAN_TYPE2(ItemStore_EraseParameters_t, uint32_t);
+
 /// Initialize the item store upon reset.
 ///
 /// The ItemStore_listenerInstance() has to be registered prior to calling ItemStore_Init()
@@ -124,6 +136,11 @@ void ItemStore_Init();
 /// @param data The data to be added to the item store
 void ItemStore_AddItem(ItemStore_ItemDef_t item,
                        const ItemStore_ItemStruct_t* data);
+
+/// Delete all items in the specified item store
+/// All pages that belong to this item store will be erased
+/// @param item Id of the item store
+void ItemStore_DeleteAllItems(ItemStore_ItemDef_t item);
 
 /// Initialize an object to enumerate all items that are stored
 /// in the specified item store. This operation is called asynchronously in

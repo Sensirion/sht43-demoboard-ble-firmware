@@ -100,6 +100,10 @@ void ItemStoreTest_EnumerateItems(SysTest_TestMessageParameter_t param) {
   ItemStore_BeginEnumerate(param.byteParameter[0], &_enumerator, callback);
 }
 
+void ItemStoreTest_DeleteAllItems(SysTest_TestMessageParameter_t param) {
+  ItemStore_DeleteAllItems(param.byteParameter[0]);
+}
+
 static void OnTimerElapsed() {
   if (_timerAddItemParameter.shortParameter[1] == 0) {
     TimerServer_Stop(_timerAddItemId);

@@ -54,8 +54,8 @@ typedef enum {
   SCHEDULER_FIRST_NO_HCICMD_TASK =
       SCHEDULER_LAST_HCICMD_TASK - 1,  //first enum item
   SCHEDULER_TASK_HANDLE_SYSTEM_HCI_EVENT,
+  SCHEDULER_TASK_HANDLE_FLASH_OPERATION,
   SCHEDULER_TASK_HANDLE_APP_MESSAGES,
-  SCHEDULER_TASK_HANDLE_SYSTEM_TEST_EVENT,
   SCHEDULER_LAST_NO_HCI_CMD_TASK  // this is the last id of the enum
 } Scheduler_NoHciCmdTaskId_t;
 
@@ -65,6 +65,7 @@ typedef enum {
   SCHEDULER_PRIO_0,
   SCHEDULER_PRIO_1,
   SCHEDULER_PRIO_2,
+  SCHEDULER_PRIO_3,
 } Scheduler_SchedulerPriority_t;
 
 /// This enum describes the list sequencer events
@@ -74,7 +75,7 @@ typedef enum {
 typedef enum {
   SCHEDULER_EVENT_HCI_CMD_RESPONSE,
   SCHEDULER_EVENT_SYSTEM_HCI_CMD_RESPONSE,
-  SCHEDULER_EVENT_FLASH_OP_COMPLETE,
+  SCHEDULER_EVENT_FLASH_OP_COMPLETE
 } Scheduler_SequencerEvent_t;
 
 #endif  // SCHEDULER_H

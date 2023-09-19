@@ -35,6 +35,7 @@
 #include "MeasurementItemController.h"
 
 #include "ItemStore.h"
+#include "app_service/networking/ble/BleGatt.h"
 #include "app_service/sensor/Sht4x.h"
 #include "utility/scheduler/MessageId.h"
 
@@ -71,8 +72,8 @@ typedef struct _tMeasurementItemController {
 static bool ItemStoreIdleState(Message_Message_t* message);
 
 /// Update the moving average for humidity and temperature
-/// @param msg message to be processed
-static void UpdateMovingAverage(Sht4x_SensorMessage_t* msg);
+/// @param message message to be processed
+static void UpdateMovingAverage(Sht4x_SensorMessage_t* message);
 
 /// Update the sample value if a full logging interval has elapsed
 /// @param msg The message with the amount of elapsed seconds
@@ -94,7 +95,8 @@ MeasurementItemController_t _measurementItemController = {
     .listener.currentMessageHandlerCb = ItemStoreIdleState,
     .listener.receiveMask = MESSAGE_BROKER_CATEGORY_ITEM_STORE |
                             MESSAGE_BROKER_CATEGORY_SENSOR_VALUE |
-                            MESSAGE_BROKER_CATEGORY_TIME_INFORMATION};
+                            MESSAGE_BROKER_CATEGORY_TIME_INFORMATION |
+                            MESSAGE_BROKER_CATEGORY_BLE_SERVICE_REQUEST};
 
 MessageListener_Listener_t* MeasurementItemController_Instance() {
   return &_measurementItemController.listener;
