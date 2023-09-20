@@ -31,50 +31,22 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////
 
-/// @file    BleInterface.h
-///
-/// Interface for the functionality of the bluetooth module. With the BLE
-/// interface, the bluetooth module is initialized and all GAP as well GATT
-/// are defined.
-
-#ifndef BLEINTERFACE_H
-#define BLEINTERFACE_H
-
-#include "BleTypes.h"
-#include "utility/StaticCodeAnalysisHelper.h"
-#include "utility/scheduler/Message.h"
+/// @file DataLoggerService.h
+#ifndef DATA_LOGGER_SERVICE_H
+#define DATA_LOGGER_SERVICE_H
 
 #include <stdint.h>
 
-///BLE messages
-typedef enum {
-  BLE_INTERFACE_MSG_ID_START_ADVERTISE,
-  BLE_INTERFACE_MSG_ID_STOP_ADVERTISE,
-  BLE_INTERFACE_MSG_ID_DISCONNECT,
-  BLE_INTERFACE_MSG_ID_SVC_REQ_RESPONSE,
-} BLE_INTERFACE_MSG_ID_t;
+/// Setup the data logger service
+/// The required fields are specified in
+/// https://github.com/Sensirion/arduino-ble-gadget/blob/master/documents/Sensirion_BLE_communication_protocol.pdf
+void DataLoggerService_Create();
 
-/// Defines the message structure of explicit BleInterface
-/// related messages.
-typedef struct _tBleInterface_Message {
-  MessageBroker_MsgHead_t head;  ///< head of the message
-  union {
-    BleTypes_AdvertisementMode_t
-        advertisementMode;  ///< Specify how to advertise
-    uint32_t reserve;       ///< Reserve to fill up to 64 bits
-    void* responsePtr;      ///< Pointer to response data
-    uint32_t responseData;  ///< A response data item.
-  } parameter;              ///< Message parameter
-} BleInterface_Message_t;
+/// Write the new value of the dataLogging interval to the characteristic.
+///
+/// The BLE stack will only reply after getting this confirmation.
+/// @param dataLoggingInterval New data logging interval
+void DataLoggerService_UpdateDataLoggingIntervalCharacteristic(
+    uint32_t dataLoggingInterval);
 
-ASSERT_SIZE_TYPE1_LESS_THAN_TYPE2(Message_Message_t, uint64_t);
-
-/// Startup the Bluetooth Low Energy interface
-/// @param appContext Ble application context.
-void BleInterface_Start(BleTypes_ApplicationContext_t* appContext);
-
-/// Publish a message to the BLE app
-/// @param msg The message to be published
-void BleInterface_PublishBleMessage(Message_Message_t* msg);
-
-#endif  // BLEINTERFACE_H
+#endif  // DATA_LOGGER_SERVICE_H
