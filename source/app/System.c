@@ -66,15 +66,13 @@
 #include "stdarg.h"
 #include "stm32_lpm.h"
 #include "stm32_seq.h"
+#include "utility/AppDefines.h"
 #include "utility/ErrorHandler.h"
 #include "utility/log/Log.h"
 #include "utility/log/Trace.h"
 #include "utility/scheduler/MessageBroker.h"
 #include "utility/scheduler/MessageId.h"
 #include "utility/scheduler/Scheduler.h"
-
-/// count number of elements in an array
-#define COUNT_OF(x) (sizeof(x) / sizeof(x)[0])
 
 /// Type definition for the message broker initialization
 typedef struct _tMessageBus {

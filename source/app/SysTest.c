@@ -45,14 +45,12 @@
 #include "test/QspiTest.h"
 #include "test/ScreenTest.h"
 #include "test/TraceTest.h"
+#include "utility/AppDefines.h"
 #include "utility/ErrorHandler.h"
 #include "utility/log/Log.h"
 
 #include <memory.h>
 #include <stdint.h>
-
-/// Count the number of elements in an array
-#define COUNT_OF(x) (sizeof(x) / sizeof(x)[0])
 
 /// Offset of the parameter within the 6 bytes received from the uart receiver
 #define MSG_PARAM_OFFSET 2
