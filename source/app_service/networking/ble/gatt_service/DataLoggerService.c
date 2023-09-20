@@ -56,6 +56,9 @@ static SVCCTL_EvtAckStatus_t EventHandler(void* event);
 /// The ID is used as index into a function table
 typedef enum {
   CHARACTERISTIC_ID_LOGGING_INTERVAL = 0,
+  CHARACTERISTIC_ID_AVAILABLE_SAMPLES,
+  CHARACTERISTIC_ID_REQUEST_SAMPLES,
+  CHARACTERISTIC_ID_SAMPLE_DATA,
   CHARACTERISTIC_ID_NR_OF_CHARS,
 } CharacteristicIds_t;
 
@@ -77,6 +80,9 @@ BleTypes_Uuid_t _serviceId = {
 /// Add the logging interval characteristic
 /// @param service Pointer to the service structure
 static void AddLoggingIntervalCharacteristic(struct _tService* service);
+/// Add the available samples characteristic
+/// @param service Pointer to the service structure
+static void AddAvailableSamplesCharacteristic(struct _tService* service);
 
 /// Handle the client request of reading the logging interval
 /// @param currentConnection Client connection handle
@@ -96,6 +102,22 @@ SVCCTL_EvtAckStatus_t WriteLoggingInterval(uint16_t currentConnection,
                                            uint8_t* data,
                                            uint8_t dataLength);
 
+/// Handle the client request reading the number of available samples.
+/// @param currentConnection Client connection handle
+/// @param data The data of the request
+/// @param dataLength The number of bytes in data
+/// @return the status of the event handler
+SVCCTL_EvtAckStatus_t ReadAvailableSamples(uint16_t currentConnection,
+                                           uint8_t* data,
+                                           uint8_t dataLength);
+/// Default handler to be used for read only characteristic
+/// @param currentConnection Client connection handle
+/// @param data The data of the request
+/// @param dataLength The number of bytes in data
+/// @return the status of the event handler
+SVCCTL_EvtAckStatus_t NopWriteHandler(uint16_t currentConnection,
+                                      uint8_t* data,
+                                      uint8_t dataLength);
 /// Setup the data logger service
 void DataLoggerService_Create() {
   // create service
@@ -107,6 +129,7 @@ void DataLoggerService_Create() {
 
   // add characteristics
   AddLoggingIntervalCharacteristic(&_service);
+  AddAvailableSamplesCharacteristic(&_service);
 }
 
 void DataLoggerService_UpdateDataLoggingIntervalCharacteristic(
@@ -115,6 +138,15 @@ void DataLoggerService_UpdateDataLoggingIntervalCharacteristic(
       _service.serviceHandle,
       _service.characteristic[CHARACTERISTIC_ID_LOGGING_INTERVAL].handle,
       (uint8_t*)&dataLoggingInterval, sizeof dataLoggingInterval);
+  ASSERT(status == BLE_STATUS_SUCCESS);
+  aci_gatt_allow_read(_service.currentConnection);
+}
+
+void DataLoggerService_UpdateAvailableSamplesCharacteristic(uint32_t samples) {
+  tBleStatus status = BleGatt_UpdateCharacteristic(
+      _service.serviceHandle,
+      _service.characteristic[CHARACTERISTIC_ID_AVAILABLE_SAMPLES].handle,
+      (uint8_t*)&samples, sizeof samples);
   ASSERT(status == BLE_STATUS_SUCCESS);
   aci_gatt_allow_read(_service.currentConnection);
 }
@@ -143,6 +175,31 @@ static void AddLoggingIntervalCharacteristic(struct _tService* service) {
       ReadLoggingInterval;
   _service.characteristic[CHARACTERISTIC_ID_LOGGING_INTERVAL].onWrite =
       WriteLoggingInterval;
+}
+
+static void AddAvailableSamplesCharacteristic(struct _tService* service) {
+  BleTypes_Characteristic_t availableSamplesCharacteristic = {
+      .uuid.uuid.Char_UUID_16 = 0x8002,
+      .maxValueLength = 4,
+      .characteristicPropertyFlags = CHAR_PROP_READ,
+      .securityFlags = ATTR_PERMISSION_NONE,
+      .eventFlags = GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
+      .encryptionKeySize = 10,
+      .isVariableLengthValue = false};
+  BleGatt_ExtendCharacteristicUuid(&availableSamplesCharacteristic.uuid,
+                                   &_serviceId);
+
+  uint32_t value = 0;
+
+  uint16_t handle = BleGatt_AddCharacteristic(service->serviceHandle,
+                                              &availableSamplesCharacteristic,
+                                              (uint8_t*)&value, sizeof(value));
+  ASSERT(handle != 0);
+  _service.characteristic[CHARACTERISTIC_ID_AVAILABLE_SAMPLES].handle = handle;
+  _service.characteristic[CHARACTERISTIC_ID_AVAILABLE_SAMPLES].onRead =
+      ReadAvailableSamples;
+  _service.characteristic[CHARACTERISTIC_ID_AVAILABLE_SAMPLES].onWrite =
+      NopWriteHandler;
 }
 
 static SVCCTL_EvtAckStatus_t EventHandler(void* void_event) {
@@ -181,5 +238,23 @@ SVCCTL_EvtAckStatus_t WriteLoggingInterval(uint16_t connectionHandle,
       .header.id = SERVICE_REQUEST_MESSAGE_ID_SET_LOGGING_INTERVAL,
       .parameter2 = *((uint32_t*)data)};
   Message_PublishAppMessage(&msg);
+  return SVCCTL_EvtAckFlowEnable;
+}
+SVCCTL_EvtAckStatus_t ReadAvailableSamples(uint16_t connectionHandle,
+                                           uint8_t* data,
+                                           uint8_t dataLength) {
+  _service.currentConnection = connectionHandle;
+  Message_Message_t msg = {
+      .header.category = MESSAGE_BROKER_CATEGORY_BLE_SERVICE_REQUEST,
+      .header.id = SERVICE_REQUEST_MESSAGE_ID_GET_AVAILABLE_SAMPLES,
+      .parameter2 = connectionHandle};
+
+  Message_PublishAppMessage(&msg);
+  return SVCCTL_EvtAckFlowEnable;
+}
+
+SVCCTL_EvtAckStatus_t NopWriteHandler(uint16_t connectionHandle,
+                                      uint8_t* data,
+                                      uint8_t dataLength) {
   return SVCCTL_EvtAckFlowEnable;
 }

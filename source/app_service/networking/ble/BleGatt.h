@@ -46,8 +46,22 @@ typedef enum {
   SERVICE_REQUEST_MESSAGE_ID_SET_LOGGING_INTERVAL,
   SERVICE_REQUEST_MESSAGE_ID_GET_AVAILABLE_SAMPLES,
   SERVICE_REQUEST_MESSAGE_ID_SET_REQUESTED_SAMPLES,
+  SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES,
   SERVICE_REQUEST_MESSAGE_ID_SET_GADGET_NAME,
 } BleGatt_ServiceRequestMessageId_t;
+
+/// This generic data structure is used to exchange data between the
+/// application and the BleContext.
+/// A pointer to such a data structure may be attached to the message
+/// that is sent from one side to the other.
+/// Depending on the parameter1 of the header the receiver knows, how to
+/// interpret the data.
+typedef struct _tBleGatt_RequestResponseData {
+  /// Pointer to the data
+  uint8_t* data;
+  /// number of bytes in data
+  uint32_t dataLength;
+} BleGatt_RequestResponseData_t;
 
 /// Defines the signature of an event handler that is associated with
 /// a characteristic.
