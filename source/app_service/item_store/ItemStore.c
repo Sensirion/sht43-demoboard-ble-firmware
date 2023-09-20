@@ -37,6 +37,7 @@
 #include "hal/Flash.h"
 #include "stm32wbxx_hal.h"
 #include "stm32wbxx_hal_flash.h"
+#include "utility/AppDefines.h"
 #include "utility/ErrorHandler.h"
 #include "utility/scheduler/Message.h"
 #include "utility/scheduler/MessageListener.h"
@@ -56,9 +57,6 @@
 
 /// Compute the flash address from a page number
 #define PAGE_ADDR(x) ((x)*FLASH_PAGE_SIZE) + FLASH_BASE
-
-/// Get the number of element within an array
-#define COUNT_OF(arr) sizeof((arr)) / sizeof((arr)[0])
 
 /// Upper bound for pageBlock indices
 #define MAX_BLOCK_INDEX 32

@@ -79,6 +79,9 @@
 /// The values are defined in AN5270.pdf
 #define BLE_TX_POWER 0x19
 
+/// Count the number of elements in an array
+#define COUNT_OF(arr) (sizeof(arr) / sizeof((arr)[0]))
+
 /// Defines the application components that may prevent the low power manager
 /// to enter a specific power down mode.
 typedef enum {
