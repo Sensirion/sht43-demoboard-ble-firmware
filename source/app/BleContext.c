@@ -68,6 +68,23 @@
 /// value of the magic keyword that is looked up by the OTA loader
 #define MAGIC_OTA_KEYWORD 0x94448A29
 
+/// Defines the state that is required to complete
+/// the sample data notifications
+typedef struct {
+  /// Number of samples that need to be transmitted
+  uint16_t nrOfSamplesToTransmit;
+  /// Number of samples that are already transmitted
+  uint16_t samplesTransmitted;
+  /// Index of the frame that needs to be transmitted
+  uint16_t currentFrameIndex;
+  /// Index of the data that needs to be transmitted
+  uint16_t currentDataIndex;
+  /// handle to the sample data
+  BleGatt_RequestResponseData_t sampleData;
+  /// buffer to be transmitted
+  uint8_t txFrameBuffer[TX_FRAME_SIZE];
+} SampleDataNotificationState_t;
+
 /// Variable holding the MAGIC_OTA_KEYWORD
 PLACE_IN_SECTION("TAG_OTA_END")
 const uint32_t MagicKeywordValue = MAGIC_OTA_KEYWORD;
@@ -93,6 +110,9 @@ static BleTypes_AdvertisementData_t gAdvData = {
     .adTypeNameFlag = AD_TYPE_COMPLETE_LOCAL_NAME,
     .name = "",  // will be initialized later on
 };
+
+/// Status information about sample notification
+static SampleDataNotificationState_t _sampleNotification;
 
 /// Ble subsystem state handler
 ///
@@ -122,6 +142,14 @@ static void HandleReadoutIntervalChange(uint8_t readoutIntervalS);
 /// @param message message to be processed
 /// @return true if the response was handled, false otherwise.
 static bool HandleServiceRequestResponse(Message_Message_t* message);
+
+/// Try to send the first notification frame
+/// The frame is already prepared but we may lack tx buffer space
+static void TrySendFirstFrame();
+
+/// Send sample notification frames until all tx buffer space is used up
+/// or no more samples are available
+static void TrySendSampleFrames();
 
 /// Struct to store all user defined information for BLE operations
 static BleTypes_ApplicationContext_t gBleApplicationContext = {
@@ -312,6 +340,14 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
           LOG_DEBUG_CALLSTATUS("pairing()", pairingComplete->Status);
           break;
           // PAIRING
+        case ACI_GATT_TX_POOL_AVAILABLE_VSEVT_CODE: {
+          BleInterface_Message_t msg = {
+              .head.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT,
+              .head.id = BLE_INTERFACE_MSG_ID_SVC_REQ_RESPONSE,
+              .head.parameter1 = SERVICE_REQUEST_MESSAGE_ID_TX_POOL_AVAILABLE};
+          BleInterface_PublishBleMessage((Message_Message_t*)&msg);
+          break;
+        }
       }
       break;  // HCI_VENDOR_SPECIFIC_DEBUG_EVT_CODE
 
@@ -491,7 +527,76 @@ static bool HandleServiceRequestResponse(Message_Message_t* message) {
       SERVICE_REQUEST_MESSAGE_ID_GET_AVAILABLE_SAMPLES) {
     DataLoggerService_UpdateAvailableSamplesCharacteristic(
         bleMsg->parameter.responseData);
+  }
+  if (bleMsg->head.parameter1 ==
+      SERVICE_REQUEST_MESSAGE_ID_SET_REQUESTED_SAMPLES) {
+    BleTypes_SamplesMetaData_t* metadata =
+        (BleTypes_SamplesMetaData_t*)bleMsg->parameter.responsePtr;
+    _sampleNotification.currentFrameIndex = 0;
+    _sampleNotification.samplesTransmitted = 0;
+    _sampleNotification.nrOfSamplesToTransmit = metadata->numberOfSamples;
+    DataLoggerService_BuildHeaderFrame(_sampleNotification.txFrameBuffer,
+                                       metadata);
+    TrySendFirstFrame();
+    return true;
+  }
+  if (bleMsg->head.parameter1 == SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES) {
+    _sampleNotification.sampleData =
+        *((BleGatt_RequestResponseData_t*)bleMsg->parameter.responsePtr);
+    _sampleNotification.currentDataIndex = 0;
+    TrySendSampleFrames();
+    return true;
+  }
+  if (bleMsg->head.parameter1 == SERVICE_REQUEST_MESSAGE_ID_TX_POOL_AVAILABLE) {
+    TrySendSampleFrames();
     return true;
   }
   return false;
+}
+
+static void TrySendFirstFrame() {
+  if (!DataLoggerService_UpdateSampleDataCharacteristic(
+          _sampleNotification.txFrameBuffer)) {
+    return;
+  }
+  _sampleNotification.currentFrameIndex++;
+  Message_Message_t msg = {
+      .header.category = MESSAGE_BROKER_CATEGORY_BLE_SERVICE_REQUEST,
+      .header.id = SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES,
+      .parameter2 = 0};
+  Message_PublishAppMessage(&msg);
+}
+
+static void TrySendSampleFrames() {
+  uint16_t index = _sampleNotification.currentDataIndex;
+  while ((index < _sampleNotification.sampleData.dataLength) &&
+         (_sampleNotification.nrOfSamplesToTransmit >
+          _sampleNotification.samplesTransmitted)) {
+    uint8_t length = 16;
+    if (index + length > _sampleNotification.sampleData.dataLength) {
+      length = _sampleNotification.sampleData.dataLength - index;
+    }
+    DataLoggerService_BuildDataFrame(
+        _sampleNotification.txFrameBuffer,
+        _sampleNotification.currentFrameIndex,
+        &_sampleNotification.sampleData.data[index], length);
+    bool success = DataLoggerService_UpdateSampleDataCharacteristic(
+        _sampleNotification.txFrameBuffer);
+    if (!success) {
+      return;
+    }
+    index += length;
+    _sampleNotification.currentDataIndex = index;
+    _sampleNotification.currentFrameIndex++;
+    _sampleNotification.samplesTransmitted += (length / 4);
+  }
+  // we are not yet done
+  if (_sampleNotification.nrOfSamplesToTransmit >
+      _sampleNotification.samplesTransmitted) {
+    Message_Message_t msg = {
+        .header.category = MESSAGE_BROKER_CATEGORY_BLE_SERVICE_REQUEST,
+        .header.id = SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES,
+        .parameter2 = 0};
+    Message_PublishAppMessage(&msg);
+  }
 }
