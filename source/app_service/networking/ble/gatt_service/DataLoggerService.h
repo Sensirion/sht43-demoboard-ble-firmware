@@ -49,4 +49,9 @@ void DataLoggerService_Create();
 void DataLoggerService_UpdateDataLoggingIntervalCharacteristic(
     uint32_t dataLoggingInterval);
 
+/// Write the available samples to the characteristic.
+///
+/// The BLE stack will only reply after getting this confirmation.
+/// @param samples Number of available samples
+void DataLoggerService_UpdateAvailableSamplesCharacteristic(uint32_t samples);
 #endif  // DATA_LOGGER_SERVICE_H

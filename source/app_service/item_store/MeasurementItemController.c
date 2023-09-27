@@ -38,6 +38,7 @@
 #include "app_service/networking/ble/BleGatt.h"
 #include "app_service/networking/ble/BleInterface.h"
 #include "app_service/sensor/Sht4x.h"
+#include "utility/AppDefines.h"
 #include "utility/scheduler/MessageId.h"
 
 /// Defines the structure of the measurement item controller.
@@ -95,6 +96,11 @@ static bool HandleBleServiceRequest(Message_Message_t* msg);
 /// Add ready samples to the item store
 /// @param canAddItem Flag to indicate if item store is ready to save items.
 static void SaveReadySamples(bool canAddItem);
+/// Enumerator callback to count the number of available samples.
+/// @param enumeratorReady Flag that indicates if enumerator is ready to use
+static void CountSamples(bool enumeratorReady);
+/// Enumerator to be used to service various requests
+static ItemStore_Enumerator_t _sampleEnumerator;
 
 /// Definition of Measurement item controller
 MeasurementItemController_t _measurementItemController = {
@@ -225,5 +231,25 @@ static bool HandleBleServiceRequest(Message_Message_t* message) {
     }
     return true;
   }
+  if (message->header.id == SERVICE_REQUEST_MESSAGE_ID_GET_AVAILABLE_SAMPLES) {
+    ItemStore_BeginEnumerate(ITEM_DEF_MEASUREMENT_SAMPLE, &_sampleEnumerator,
+                             CountSamples);
+    return true;
+  }
   return false;
+}
+static void CountSamples(bool enumeratorReady) {
+  BleInterface_Message_t msg = {
+      .head.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT,
+      .head.id = BLE_INTERFACE_MSG_ID_SVC_REQ_RESPONSE,
+      .head.parameter1 = SERVICE_REQUEST_MESSAGE_ID_GET_AVAILABLE_SAMPLES,
+      .parameter.responseData = 0};
+
+  if (!enumeratorReady) {
+    BleInterface_PublishBleMessage((Message_Message_t*)&msg);
+    return;
+  }
+  msg.parameter.responseData = ItemStore_Count(&_sampleEnumerator) * 2;
+  BleInterface_PublishBleMessage((Message_Message_t*)&msg);
+  ItemStore_EndEnumerate(&_sampleEnumerator);
 }

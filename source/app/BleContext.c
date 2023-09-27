@@ -487,5 +487,11 @@ static bool HandleServiceRequestResponse(Message_Message_t* message) {
         bleMsg->parameter.responseData);
     return true;
   }
+  if (bleMsg->head.parameter1 ==
+      SERVICE_REQUEST_MESSAGE_ID_GET_AVAILABLE_SAMPLES) {
+    DataLoggerService_UpdateAvailableSamplesCharacteristic(
+        bleMsg->parameter.responseData);
+    return true;
+  }
   return false;
 }
