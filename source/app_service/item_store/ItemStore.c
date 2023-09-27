@@ -514,6 +514,7 @@ bool ItemStore_GetNext(ItemStore_Enumerator_t* enumerator,
   }
 
   uint32_t readAddress = PAGE_ADDR(status->enumeratingPage.beginTag.pageId) +
+                         +sizeof(PageHeader_t) +
                          status->currentIndex * itemStoreInfo->itemSize;
   if (!Flash_Read(readAddress, (uint8_t*)data,
                   status->enumeratingPage.beginTag.itemSize)) {
