@@ -191,4 +191,12 @@ typedef union {
   uint32_t addressWords[2];  ///<word representation
 } BleTypes_BleDeviceAddress_t;
 
+/// Contains the information that is needed to assemble the data logger
+/// transmit frame[0].
+typedef struct __PACKED {
+  uint32_t loggingIntervalMs;  ///< Actual logging interval of the device
+  uint32_t ageOfLatestSample;  ///< Estimated age of newest requested sample
+  uint16_t numberOfSamples;    ///< Number of samples that will be delivered
+} BleTypes_SamplesMetaData_t;
+
 #endif  // BLE_TYPES_H

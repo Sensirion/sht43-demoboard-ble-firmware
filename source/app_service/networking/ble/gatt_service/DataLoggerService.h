@@ -35,7 +35,13 @@
 #ifndef DATA_LOGGER_SERVICE_H
 #define DATA_LOGGER_SERVICE_H
 
+#include "app_service/networking/ble/BleInterface.h"
+
+#include <stdbool.h>
 #include <stdint.h>
+
+/// Size of data logger frame
+#define TX_FRAME_SIZE 20
 
 /// Setup the data logger service
 /// The required fields are specified in
@@ -54,4 +60,32 @@ void DataLoggerService_UpdateDataLoggingIntervalCharacteristic(
 /// The BLE stack will only reply after getting this confirmation.
 /// @param samples Number of available samples
 void DataLoggerService_UpdateAvailableSamplesCharacteristic(uint32_t samples);
+
+/// Write the next frame to the sample data characteristic.
+///
+/// @param frame data frame to be notified to the client
+/// @return true if the characteristic was updated successfully;
+///         false otherwise.
+/// @note:  In case the function returns false, the update shall be retried as
+///         soon as a ACI_GATT_TX_POOL_AVAILABLE_EVENT has been received.
+bool DataLoggerService_UpdateSampleDataCharacteristic(
+    uint8_t frame[TX_FRAME_SIZE]);
+
+/// Build the first notification frame containing the metadata of the
+/// MeasurementSampleData.
+/// @param txFrameBuffer Storage for the first frame
+/// @param metadata Metadata to be embedded in the frame
+void DataLoggerService_BuildHeaderFrame(uint8_t txFrameBuffer[TX_FRAME_SIZE],
+                                        BleTypes_SamplesMetaData_t* metadata);
+
+/// Build a data frame containing logged data.
+/// @param txFrameBuffer Storage for the data frame
+/// @param frameIndex Index of the frame
+/// @param data Data bytes to be sent
+/// @param dataLength Number of valid data bytes
+void DataLoggerService_BuildDataFrame(uint8_t txFrameBuffer[TX_FRAME_SIZE],
+                                      uint16_t frameIndex,
+                                      uint8_t* data,
+                                      uint8_t dataLength);
+
 #endif  // DATA_LOGGER_SERVICE_H
