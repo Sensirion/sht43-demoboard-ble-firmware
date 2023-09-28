@@ -220,8 +220,8 @@ void ErrorHandler_UnrecoverableError(ErrorHandler_ErrorCode_t code) {
   MessageBroker_Run(&_appMessageBroker.broker);
   // and stop execution afterwards
   __disable_irq();
-  LL_LPM_EnableSleep();
-  __WFI();
+  while (1)
+    ;
 }
 
 void ErrorHandler_RecoverableError(ErrorHandler_ErrorCode_t code) {
