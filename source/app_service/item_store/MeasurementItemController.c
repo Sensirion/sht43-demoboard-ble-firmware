@@ -39,7 +39,28 @@
 #include "app_service/networking/ble/BleInterface.h"
 #include "app_service/sensor/Sht4x.h"
 #include "utility/AppDefines.h"
+#include "utility/ErrorHandler.h"
 #include "utility/scheduler/MessageId.h"
+
+/// Structure used while serving a data readout request.
+typedef struct _tSampleRequestData {
+  /// metadata to be sent to ble context
+  BleTypes_SamplesMetaData_t metadata;
+
+  /// Start index of the enumerator
+  uint16_t enumeratorStartIndex;
+
+  /// Number requested samples
+  uint16_t requestedNrOfSamples;
+
+  /// A buffer to hold one page of samples;
+  /// Since we cannot add more samples while enumerating, we read page by page
+  /// and release the enumerator after each read.
+  ItemStore_MeasurementSample_t samplesCache[510];
+
+  /// Data structure that is returned to the ble context
+  BleGatt_RequestResponseData_t responseData;
+} SampleRequestData_t;
 
 /// Defines the structure of the measurement item controller.
 typedef struct _tMeasurementItemController {
@@ -68,8 +89,12 @@ typedef struct _tMeasurementItemController {
   bool isSampleReady;
   /// current sample index
   uint8_t currentSampleIndex;
+  /// Flag to indicate that the logging interval needs to be saved in the
+  /// system settings
+  bool isLoggingIntervalChanged;
   /// Samples that will be inserted into the item store as soon as possible
   ItemStore_MeasurementSample_t samples;
+
 } MeasurementItemController_t;
 
 /// State of the controller where inserting new items is possible.
@@ -96,9 +121,23 @@ static bool HandleBleServiceRequest(Message_Message_t* msg);
 /// Add ready samples to the item store
 /// @param canAddItem Flag to indicate if item store is ready to save items.
 static void SaveReadySamples(bool canAddItem);
+
 /// Enumerator callback to count the number of available samples.
 /// @param enumeratorReady Flag that indicates if enumerator is ready to use
 static void CountSamples(bool enumeratorReady);
+
+/// Evaluate the number of samples and initialize the sample request structure;
+/// @param enumeratorReady
+static void BeginReadSamples(bool enumeratorReady);
+
+/// Read a bunch of data into the sample cache and notify the data to the
+/// BLE context;
+/// @param enumeratorReady
+static void ReadMoreSamples(bool enumeratorReady);
+
+/// Structure to hold the state of the sample request
+static SampleRequestData_t _sampleRequest;
+
 /// Enumerator to be used to service various requests
 static ItemStore_Enumerator_t _sampleEnumerator;
 
@@ -232,12 +271,31 @@ static bool HandleBleServiceRequest(Message_Message_t* message) {
     return true;
   }
   if (message->header.id == SERVICE_REQUEST_MESSAGE_ID_GET_AVAILABLE_SAMPLES) {
+    _sampleEnumerator.startIndex = 0;
     ItemStore_BeginEnumerate(ITEM_DEF_MEASUREMENT_SAMPLE, &_sampleEnumerator,
                              CountSamples);
     return true;
   }
+
+  if (message->header.id == SERVICE_REQUEST_MESSAGE_ID_SET_REQUESTED_SAMPLES) {
+    _sampleRequest.requestedNrOfSamples = message->parameter2;
+    ItemStore_BeginEnumerate(ITEM_DEF_MEASUREMENT_SAMPLE, &_sampleEnumerator,
+                             BeginReadSamples);
+    return true;
+  }
+
+  if (message->header.id == SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES) {
+    // we may use the enumerator for other purposes; hence the start index
+    // is always reinitialized.
+    _sampleEnumerator.startIndex = _sampleRequest.enumeratorStartIndex;
+    ItemStore_BeginEnumerate(ITEM_DEF_MEASUREMENT_SAMPLE, &_sampleEnumerator,
+                             ReadMoreSamples);
+    return true;
+  }
+
   return false;
 }
+
 static void CountSamples(bool enumeratorReady) {
   BleInterface_Message_t msg = {
       .head.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT,
@@ -252,4 +310,68 @@ static void CountSamples(bool enumeratorReady) {
   msg.parameter.responseData = ItemStore_Count(&_sampleEnumerator) * 2;
   BleInterface_PublishBleMessage((Message_Message_t*)&msg);
   ItemStore_EndEnumerate(&_sampleEnumerator);
+}
+
+static void BeginReadSamples(bool enumeratorReady) {
+  BleInterface_Message_t msg = {
+      .head.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT,
+      .head.id = BLE_INTERFACE_MSG_ID_SVC_REQ_RESPONSE,
+      .head.parameter1 = SERVICE_REQUEST_MESSAGE_ID_SET_REQUESTED_SAMPLES,
+      .parameter.responsePtr = 0};
+
+  if (!enumeratorReady) {
+    ErrorHandler_RecoverableError(ERROR_CODE_ITEM_STORE);
+    return;
+  }
+  uint16_t availableSamples = ItemStore_Count(&_sampleEnumerator) * 2;
+  ItemStore_EndEnumerate(&_sampleEnumerator);
+  _sampleRequest.metadata.numberOfSamples =
+      MIN(availableSamples, _sampleRequest.requestedNrOfSamples);
+  msg.parameter.responsePtr = &_sampleRequest.metadata;
+  _sampleRequest.metadata.loggingIntervalMs =
+      _measurementItemController.loggingIntervalS * 1000;
+
+  // compute where we need to start reading from.
+  _sampleRequest.enumeratorStartIndex = 0;
+  if (availableSamples > _sampleRequest.requestedNrOfSamples) {
+    _sampleRequest.enumeratorStartIndex =
+        availableSamples - _sampleRequest.requestedNrOfSamples;
+  }
+  // compute the age of the last sample in flash
+  _sampleRequest.metadata.ageOfLatestSample =
+      ((_measurementItemController.loggingIntervalS -
+        _measurementItemController.remainingTimeS) +
+       _measurementItemController.currentSampleIndex *
+           _measurementItemController.loggingIntervalS) *
+      1000;
+  // now that all information is assembled, send it back to the ble context
+  BleInterface_PublishBleMessage((Message_Message_t*)&msg);
+}
+
+static void ReadMoreSamples(bool enumeratorReady) {
+  BleInterface_Message_t msg = {
+      .head.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT,
+      .head.id = BLE_INTERFACE_MSG_ID_SVC_REQ_RESPONSE,
+      .head.parameter1 = SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES,
+      .parameter.responsePtr = 0};
+
+  if (!enumeratorReady) {
+    ErrorHandler_RecoverableError(ERROR_CODE_ITEM_STORE);
+    return;
+  }
+  uint16_t index = 0;
+  while (_sampleEnumerator.hasMoreItems &&
+         index < COUNT_OF(_sampleRequest.samplesCache) &&
+         index < (_sampleRequest.metadata.numberOfSamples / 2)) {
+    ItemStore_GetNext(
+        &_sampleEnumerator,
+        (ItemStore_ItemStruct_t*)&_sampleRequest.samplesCache[index++]);
+  }
+  ItemStore_EndEnumerate(&_sampleEnumerator);
+  _sampleRequest.enumeratorStartIndex += index;
+  _sampleRequest.responseData.dataLength =
+      index * sizeof(ItemStore_MeasurementSample_t);
+  _sampleRequest.responseData.data = (uint8_t*)_sampleRequest.samplesCache;
+  msg.parameter.responsePtr = &_sampleRequest.responseData;
+  BleInterface_PublishBleMessage((Message_Message_t*)&msg);
 }

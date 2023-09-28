@@ -48,6 +48,7 @@ typedef enum {
   SERVICE_REQUEST_MESSAGE_ID_SET_REQUESTED_SAMPLES,
   SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES,
   SERVICE_REQUEST_MESSAGE_ID_SET_GADGET_NAME,
+  SERVICE_REQUEST_MESSAGE_ID_TX_POOL_AVAILABLE,
 } BleGatt_ServiceRequestMessageId_t;
 
 /// This generic data structure is used to exchange data between the
