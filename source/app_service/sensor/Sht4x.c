@@ -38,6 +38,7 @@
 #include "Sht4x.h"
 
 #include "app_service/timer_server/TimerServer.h"
+#include "hal/Crc.h"
 #include "hal/I2c3.h"
 #include "utility/scheduler/MessageBroker.h"
 
@@ -93,13 +94,6 @@ static void ExtractSerialNumber(const uint8_t* data,
 /// @param message Message to be filled with the extracted measurement values
 static void ExtractMeasurementValues(const uint8_t* data,
                                      Sht4x_SensorMessage_t* message);
-
-/// Calculate the Cyclic Redundancy Check (CRC)
-///
-/// @param data     Data of which the CRC should be calculated
-/// @param nBytes   Number of bytes to be checked
-/// @return The CRC of the data parsed
-static uint8_t CalculateCrc(uint8_t const data[], uint8_t nBytes);
 
 /// Check the received CRCs within the received ata
 ///
@@ -177,6 +171,7 @@ void Sht4x_Init(MessageBroker_Broker_t* broker) {
 }
 
 void Sht4x_StartRequest(Sht4x_Commands_t command) {
+  Crc_Enable();  // we will require the crc calculation
   _command = command;
   _communicationBuffer[0] = _commandMetaData[command].cmdId;
   I2c3_Write(SHT4X_DEVICE_ADDRESS, _communicationBuffer, 1, RequestCompleted);
@@ -231,28 +226,10 @@ static void ExtractMeasurementValues(const uint8_t* data,
   message->data.measurement.humidityTicks = (data[3] << 8) | data[4];
 }
 
-// this can be replaced by hw!
-static uint8_t CalculateCrc(uint8_t const data[], uint8_t nBytes) {
-  uint8_t crc = 0xFF;  // calculated checksum
-
-  // Calculate 8-Bit checksum with given polynomial
-  for (uint8_t byteCtr = 0; byteCtr < nBytes; ++byteCtr) {
-    crc ^= (data[byteCtr]);
-    for (uint8_t bit = 8; bit > 0; --bit) {
-      if (crc & 0x80) {
-        crc = (crc << 1) ^ POLYNOMIAL;
-      } else {
-        crc = (crc << 1);
-      }
-    }
-  }
-  return crc;
-}
-
 static bool CheckCrc(uint8_t nBytes) {
   for (int i = 0; i < nBytes; i += 3) {
-    uint8_t crc = CalculateCrc(&_communicationBuffer[i], 3);
-    if (crc != 0) {
+    uint32_t hwcrc = Crc_ComputeCrc(&_communicationBuffer[i], 3);
+    if (hwcrc != 0) {
       return false;
     }
   }

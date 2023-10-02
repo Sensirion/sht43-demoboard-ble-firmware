@@ -40,6 +40,7 @@
 
 #include "Sht4x.h"
 #include "app_conf.h"
+#include "hal/Crc.h"
 #include "hal/I2c3.h"
 #include "math.h"
 #include "stm32_lpm.h"
@@ -178,6 +179,7 @@ static void SetReminderIfNeeded(Message_Message_t* msg) {
 }
 
 static void SetIdleState() {
+  Crc_Disable();
   _sht4xController.listener.currentMessageHandlerCb = IdleStateCb;
   if (_sht4xController.activeReminder) {
     _sht4xController.listener.currentMessageHandlerCb(&_reminder);
