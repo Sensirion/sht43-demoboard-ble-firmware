@@ -37,6 +37,7 @@
 
 #include "BleContext.h"
 
+#include "app_service/item_store/ItemStore.h"
 #include "app_service/networking/HciTransport.h"
 #include "app_service/networking/ble/BleGap.h"
 #include "app_service/networking/ble/BleGatt.h"
@@ -93,8 +94,9 @@ const uint32_t MagicKeywordValue = MAGIC_OTA_KEYWORD;
 PLACE_IN_SECTION("TAG_OTA_START")
 const uint32_t MagicKeywordAddress = (uint32_t)&MagicKeywordValue;
 
-/// Placeholder to advertise a dummy SHT value.
-static BleTypes_AdvertisementData_t gAdvData = {
+/// Complete advertisement data template. The measurement values
+/// will be updated with every time event.
+static BleTypes_CompleteAdvertisementData_t gCompleteAdvData = {
     .adTypeSize = 2,
     .adTypeFlag = AD_TYPE_FLAGS,
     .adTypeValue = 0x06,
@@ -111,7 +113,22 @@ static BleTypes_AdvertisementData_t gAdvData = {
     .name = "",  // will be initialized later on
 };
 
-/// Status information about sample notification
+/// Restricted advertisement data.
+static BleTypes_RestrictedAdvertisementData_t gRestrictedAdvData = {
+    .adTypeSize = 2,
+    .adTypeFlag = AD_TYPE_FLAGS,
+    .adTypeValue = 0x06,
+    .adTypeManufacturerSize = 4,
+    .adTypeManufacturerFlag = AD_TYPE_MANUFACTURER_SPECIFIC_DATA,
+    .companyIdentifier = BLE_TYPES_SENSIRION_VENDOR_ID,
+    .sAdvT = 0xFF,
+    .sampleType = 0,
+    .adTypeNameSize = 9,
+    .adTypeNameFlag = AD_TYPE_COMPLETE_LOCAL_NAME,
+    .name = "",  // will be initialized later on
+};
+
+/// status information about sample notification
 static SampleDataNotificationState_t _sampleNotification;
 
 /// Ble subsystem state handler
@@ -153,8 +170,8 @@ static void TrySendSampleFrames();
 
 /// Struct to store all user defined information for BLE operations
 static BleTypes_ApplicationContext_t gBleApplicationContext = {
-    .advertisementData = &gAdvData,
-    .advertisementDataSize = sizeof(gAdvData),
+    .advertisementData = &gCompleteAdvData,
+    .advertisementDataSize = sizeof(gCompleteAdvData),
     .currentAdvertisementMode.advertiseModeSpecification = {
         .connectable = true,
         .interval = ADVERTISEMENT_INTERVAL_SHORT}};
@@ -186,10 +203,17 @@ MessageListener_Listener_t* BleContext_BridgeInstance() {
 }
 
 void BleContext_StartBluetoothApp() {
-  gAdvData.deviceId = ProductionParameters_GetUniqueDeviceId() & 0xFFFF;
-  // initialize device name
-  memcpy(gAdvData.name, (uint8_t*)ProductionParameters_GetDeviceName(),
-         sizeof(gAdvData.name));
+  gCompleteAdvData.deviceId = ProductionParameters_GetUniqueDeviceId() & 0xFFFF;
+  // initialize device name in the complete advertisement data structure
+  memcpy(gCompleteAdvData.name, (uint8_t*)ProductionParameters_GetDeviceName(),
+         sizeof(gCompleteAdvData.name));
+  // initialize device name in the restricted advertisement data structure
+  memcpy(gRestrictedAdvData.name,
+         (uint8_t*)ProductionParameters_GetDeviceName(),
+         sizeof(gRestrictedAdvData.name));
+  // this is just a pointer to static memory
+  gBleApplicationContext.localName =
+      (uint8_t*)ProductionParameters_GetDeviceName();
   BleInterface_Start(&gBleApplicationContext);
   gBleApplicationContext.deviceConnectionStatus = BLE_INTERFACE_IDLE;
   gBleApplicationContext.bleApplicationContextLegacy.connectionHandle = 0xFFFF;
@@ -366,8 +390,10 @@ static bool BleDefaultStateCb(Message_Message_t* message) {
     if (message->header.parameter1 == SHT4X_COMMAND_READ_SERIAL_NUMBER) {
       ShtService_SetSerialNumber(sensorMsg->data.serialNumer);
     } else {
-      gAdvData.temperatureTicks = sensorMsg->data.measurement.temperatureTicks;
-      gAdvData.humidityTicks = sensorMsg->data.measurement.humidityTicks;
+      gCompleteAdvData.temperatureTicks =
+          sensorMsg->data.measurement.temperatureTicks;
+      gCompleteAdvData.humidityTicks =
+          sensorMsg->data.measurement.humidityTicks;
       /// this does not change the advertisement mode
       BleGap_AdvertiseRequest(&gBleApplicationContext,
                               gBleApplicationContext.currentAdvertisementMode);

@@ -54,6 +54,9 @@
 /// Defines the vendor id;
 #define BLE_TYPES_SENSIRION_VENDOR_ID 0x06D5
 
+/// Name of the local name within the advertisement data
+#define BLE_TYPES_LOCAL_NAME_LENGTH 8
+
 /// security parameters structure
 typedef struct _tSecurityParams {
   /// IO capability of the device
@@ -114,14 +117,31 @@ typedef union _tBleTypes_AdvertisementMode {
   uint16_t compare;              ///< for easy comparison of two modes
 } BleTypes_AdvertisementMode_t;
 
-/// Defines the advertisement data of the SHT4x Demo Board
+/// Defines the advertisement data without sample data
 typedef struct __attribute__((__packed__)) {
   uint8_t adTypeSize;              ///< size type
   uint8_t adTypeFlag;              ///< flag type
   uint8_t adTypeValue;             ///< value type
-  uint8_t adTypeManufacturerSize;  ///<size manufacturer
-  uint8_t adTypeManufacturerFlag;  ///<flag manufacturer
-  uint16_t companyIdentifier;      ///<value manufacturer
+  uint8_t adTypeManufacturerSize;  ///< size manufacturer
+  uint8_t adTypeManufacturerFlag;  ///< flag manufacturer
+  uint16_t companyIdentifier;      ///< value manufacturer
+  uint8_t sAdvT;                   ///< advertisement type
+  uint8_t sampleType;              ///< type of advertisement
+  uint8_t adTypeNameSize;          ///< size device name
+  uint8_t adTypeNameFlag;          ///< type device name
+  /// value device name
+  uint8_t name[BLE_TYPES_LOCAL_NAME_LENGTH];
+} BleTypes_RestrictedAdvertisementData_t;
+
+/// Defines the complete advertisement data of the SHT4x Demo Board
+/// including temperature and humidity measurement values.
+typedef struct __attribute__((__packed__)) {
+  uint8_t adTypeSize;              ///< size type
+  uint8_t adTypeFlag;              ///< flag type
+  uint8_t adTypeValue;             ///< value type
+  uint8_t adTypeManufacturerSize;  ///< size manufacturer
+  uint8_t adTypeManufacturerFlag;  ///< flag manufacturer
+  uint16_t companyIdentifier;      ///< value manufacturer
   uint8_t sAdvT;                   ///< advertisement type
   uint8_t sampleType;              ///< format tag of subsequent data
   uint16_t deviceId;               ///< device id         (custom data)
@@ -129,8 +149,9 @@ typedef struct __attribute__((__packed__)) {
   uint16_t humidityTicks;          ///< humidity ticks    (custom data)
   uint8_t adTypeNameSize;          ///< size device name
   uint8_t adTypeNameFlag;          ///< type device name
-  uint8_t name[8];                 ///< value device name
-} BleTypes_AdvertisementData_t;
+  /// value device name
+  uint8_t name[BLE_TYPES_LOCAL_NAME_LENGTH];
+} BleTypes_CompleteAdvertisementData_t;
 
 /// global context containing the variables common to all services
 typedef struct _tBLEProfileGlobalContext {
@@ -179,9 +200,10 @@ typedef struct {
   BleTypes_GlobalContext_t bleApplicationContextLegacy;
   /// Connection Status
   BleTypes_ConnStatus_t deviceConnectionStatus;
-  uint64_t timeRunningTick;  ///< the time the ble app is running
-  BleTypes_AdvertisementData_t* advertisementData;  ///< advertisement data
-  uint8_t advertisementDataSize;                    ///< size of advertisement
+  uint64_t timeRunningTick;       ///< the time the ble app is running
+  void* advertisementData;        ///< advertisement data
+  uint8_t advertisementDataSize;  ///< size of advertisement
+  uint8_t* localName;             ///< Pointer to the device name
   BleTypes_AdvertisementMode_t currentAdvertisementMode;  ///< current mode
 } BleTypes_ApplicationContext_t;
 
