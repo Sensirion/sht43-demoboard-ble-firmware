@@ -47,13 +47,13 @@
 #define SYSTEM_CONFIG_FIRST_PAGE 65
 
 /// Last page of the system settings item
-#define SYSTEM_CONFIG_LAST_PAGE SYSTEM_CONFIG_FIRST_PAGE + 1
+#define SYSTEM_CONFIG_LAST_PAGE (SYSTEM_CONFIG_FIRST_PAGE + 1)
 
 /// First page of the measurement item
-#define MEASUREMENT_VALUES_FIRST_PAGE SYSTEM_CONFIG_LAST_PAGE + 1
+#define MEASUREMENT_VALUES_FIRST_PAGE (SYSTEM_CONFIG_LAST_PAGE + 1)
 
 /// Last page of the measurement item
-#define MEASUREMENT_VALUES_LAST_PAGE MEASUREMENT_VALUES_FIRST_PAGE + 16
+#define MEASUREMENT_VALUES_LAST_PAGE (MEASUREMENT_VALUES_FIRST_PAGE + 32)
 
 /// Compute the flash address from a page number
 #define PAGE_ADDR(x) ((x)*FLASH_PAGE_SIZE) + FLASH_BASE
@@ -290,12 +290,15 @@ static void FlashEraseDoneCb(uint32_t pageId, uint8_t remaining);
 ItemStoreInfo_t _itemStore[] = {
     [ITEM_DEF_SYSTEM_CONFIG] = {.firstPage = SYSTEM_CONFIG_FIRST_PAGE,
                                 .lastPage = SYSTEM_CONFIG_LAST_PAGE,
-                                .nrOfPages = 2,
+                                .nrOfPages = 1 + (SYSTEM_CONFIG_LAST_PAGE -
+                                                  SYSTEM_CONFIG_FIRST_PAGE),
                                 .itemSize = sizeof(ItemStore_SystemConfig_t),
                                 .currentState = IdleState},
     [ITEM_DEF_MEASUREMENT_SAMPLE] = {.firstPage = MEASUREMENT_VALUES_FIRST_PAGE,
                                      .lastPage = MEASUREMENT_VALUES_LAST_PAGE,
-                                     .nrOfPages = 17,
+                                     .nrOfPages =
+                                         1 + (MEASUREMENT_VALUES_LAST_PAGE -
+                                              MEASUREMENT_VALUES_FIRST_PAGE),
                                      .itemSize =
                                          sizeof(ItemStore_MeasurementSample_t),
                                      .currentState = IdleState},
