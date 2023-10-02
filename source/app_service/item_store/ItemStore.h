@@ -77,11 +77,19 @@ typedef enum {
 ///
 /// This structure is not yet finalized!
 typedef struct _tItemStore_SystemConfig {
-  char deviceName[32];       ///< name of the device that may be set via BLE
+  /// Actual version of the system configuration; the version number is meant
+  /// to guarantee backwards compatibility.
+  uint8_t version;
+  /// Enable/disable uart trace
+  bool isLogEnabled;
+  /// Enable/disable advertise
+  bool isAdvertiseDataEnabled;
+  uint8_t paddingByte;       ///< pad the remaining byte to be 4 byte aligned
+  char deviceName[32];       ///< Name of the device that may be set via BLE
   uint32_t loggingInterval;  ///< logging interval in ms. smallest value 5s.
-  bool debug;                ///< enable uart trace
-  uint8_t reserve[24];       ///< overall size may be 64 bytes so that we
+  uint8_t reserve2[84];      ///< Overall size is 128 bytes so that we
                              ///< can define further values in the future.
+  uint32_t crc;              ///< Crc to check data integrity
 } ItemStore_SystemConfig_t;
 
 /// Structure definition of item 'Measurement'
