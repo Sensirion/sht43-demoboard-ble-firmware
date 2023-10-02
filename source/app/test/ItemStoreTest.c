@@ -53,7 +53,8 @@ static void OnTimerElapsed();
 
 /// Default item values for testing
 ItemStore_ItemStruct_t _testItemData[] = {
-    [0] = {.configuration.debug = true,
+    [0] = {.configuration.isLogEnabled = true,
+           .configuration.isAdvertiseDataEnabled = true,
            .configuration.deviceName = "test demo board name",
            .configuration.loggingInterval = 5000},
     [1] = {.measurement.sample = {{0xABCD, 0x0123}, {0x4567, 0x89AB}}}};
