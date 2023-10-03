@@ -43,6 +43,7 @@
 #include "app/test/FlashTest.h"
 #include "app_service/item_store/ItemStore.h"
 #include "app_service/item_store/MeasurementItemController.h"
+#include "app_service/item_store/SettingsController.h"
 #include "app_service/networking/HciTransport.h"
 #include "app_service/networking/ble/BleInterface.h"
 #include "app_service/nvm/ProductionParameters.h"
@@ -119,10 +120,11 @@ void System_Init(void) {
   // This is the first thing to do since errors are also propagated as
   // messages
   InitMessageBroker(
-      &_appMessageBroker, 7, SysTest_TestControllerInstance(),
+      &_appMessageBroker, 8, SysTest_TestControllerInstance(),
       BatteryMonitor_Instance(), SensorController_Sht4xControllerInstance(),
       BleContext_BridgeInstance(), Presentation_ControllerInstance(),
-      ItemStore_ListenerInstance(), MeasurementItemController_Instance());
+      ItemStore_ListenerInstance(), MeasurementItemController_Instance(),
+      SettingsController_Instance());
 
   InitMessageBroker(&_bleMessageBroker, 1, BleContext_Instance());
 
