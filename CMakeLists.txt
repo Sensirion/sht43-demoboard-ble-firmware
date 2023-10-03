@@ -125,6 +125,7 @@ set(APP_SOURCES
     source/app_service/networking/ble/gatt_service/HumidityService.c
     source/app_service/networking/ble/gatt_service/BatteryService.c
     source/app_service/networking/ble/gatt_service/DataLoggerService.c
+    source/app_service/networking/ble/gatt_service/DeviceSettingsService.c
     source/app_service/item_store/ItemStore.c
     source/app_service/item_store/MeasurementItemController.c
     source/app_service/power_manager/PowerManager.c

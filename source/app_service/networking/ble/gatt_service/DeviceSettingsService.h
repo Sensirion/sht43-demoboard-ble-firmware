@@ -31,30 +31,36 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////
 
-/// @file MessageId.h
-///
-/// Defines the message ids for each category that is not clearly associated
-/// to a specific module.
-/// The message id's of the following categories are defined in another header:
-/// - Category SensorValue: Sht4x.h
-/// - Category ButtonEvent: Button.h
-/// - Category Test: SysTest.h
-///
-/// No messages defined for the category SystemStateChange so far.
+/// @file DeviceSettingsService.h
+#ifndef DEVICE_SETTINGS_SERVICE_H
+#define DEVICE_SETTINGS_SERVICE_H
 
-#ifndef MESSAGE_ID_H
-#define MESSAGE_ID_H
+#include "app_service/item_store/ItemStore.h"
 
-/// Defines the message id of the category TimeInformation
-typedef enum { MESSAGE_ID_TIME_INFO_TIME_ELAPSED = 1 } MessageId_TimeInfo_t;
+#include <stdbool.h>
+#include <stdint.h>
 
-/// Defines the message id for system state change category
-typedef enum {
-  MESSAGE_ID_STATE_CHANGE_ERROR = 1,
-  MESSAGE_ID_PERIPHERALS_INITIALIZED = 2,
-  MESSAGE_ID_READOUT_INTERVAL_CHANGE = 3,
-  MESSAGE_ID_BLE_SUBSYSTEM_READY = 4,
-  MESSAGE_ID_DEVICE_SETTINGS_READ = 5
-} MessageId_StateChange_t;
+/// Setup the device settings service
+/// The required fields are specified in
+/// https://github.com/Sensirion/ble-services/blob/main/ble-services.yml
+void DeviceSettingsService_Create();
 
-#endif  // MESSAGE_ID_H
+/// Update the service version
+/// @param version actual version of the device settings
+void DeviceSettingsService_UpdateVersion(uint8_t version);
+
+/// Update isLogEnabled
+/// @param isLogEnabled actual value of the isLogEnabled flag
+void DeviceSettingsService_UpdateIsLogEnabled(bool isLogEnabled);
+
+/// Update is advertise data enabled
+/// @param isAdvertiseDataEnabled value of the alternative device name
+void DeviceSettingsService_UpdateIsAdvertiseDataEnabled(
+    bool isAdvertiseDataEnabled);
+
+/// Update alternative device name
+/// @param alternativeName value of the alternative device name
+void DeviceSettingsService_UpdateAlternativeDeviceName(
+    const char* alternativeName);
+
+#endif  // DEVICE_SETTINGS_SERVICE_H
