@@ -72,14 +72,14 @@ void BleGap_Init(BleTypes_ApplicationContext_t* bleApplicationContext) {
   uint16_t appearance[1] = {BLE_GAP_APPEARANCE};
 
   // Initialize GAP interface
-  uint8_t nameLength = sizeof(bleApplicationContext->advertisementData->name);
+  uint8_t nameLength = BLE_TYPES_LOCAL_NAME_LENGTH;
   ret = aci_gap_init(role, CFG_PRIVACY, nameLength, &gapServiceHandle,
                      &gapDevNameCharHandle, &gapAppearanceCharHandle);
   LOG_DEBUG_CALLSTATUS("aci_gap_init()", ret);
 
-  ret = aci_gatt_update_char_value(
-      gapServiceHandle, gapDevNameCharHandle, 0, nameLength,
-      (uint8_t*)bleApplicationContext->advertisementData->name);
+  ret = aci_gatt_update_char_value(gapServiceHandle, gapDevNameCharHandle, 0,
+                                   nameLength,
+                                   (uint8_t*)bleApplicationContext->localName);
   if (ret != BLE_STATUS_SUCCESS) {
     ErrorHandler_UnrecoverableError(ERROR_CODE_BLE);
   }
