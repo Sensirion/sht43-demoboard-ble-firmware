@@ -128,6 +128,7 @@ set(APP_SOURCES
     source/app_service/networking/ble/gatt_service/DeviceSettingsService.c
     source/app_service/item_store/ItemStore.c
     source/app_service/item_store/MeasurementItemController.c
+    source/app_service/item_store/SettingsController.c
     source/app_service/power_manager/PowerManager.c
     source/app_service/power_manager/LpmHooks.c
     source/app_service/power_manager/SchedulerOverride.c

@@ -125,6 +125,8 @@ static uint8_t
 
 /// pointer to peripheral
 static IPCC_HandleTypeDef* gIpcc;
+
+/// Callback that is used to start the wireless subsystem
 static WirelessAppStarterCb_t gWirelessAppStarterCb;
 
 void HciTransport_Init(WirelessAppStarterCb_t startedCb) {

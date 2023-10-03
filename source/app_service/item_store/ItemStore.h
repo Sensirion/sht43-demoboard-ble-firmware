@@ -41,6 +41,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/// Buffer size for the alternative device name
+#define DEVICE_NAME_BUFFER_LENGTH 32
+
+/// Maximal length of the alternative device name. Due to the 0 termination
+/// of c-strings this is the buffer size -1.
+#define DEVICE_NAME_MAX_LEN (DEVICE_NAME_BUFFER_LENGTH - 1)
+
 /// Callback to notify the state of the enumerator as a response of a call
 /// to the function `ItemStore_BeginEnumerate`
 /// When the iterator is ready, it may be used to synchronously iterate through
@@ -84,8 +91,9 @@ typedef struct _tItemStore_SystemConfig {
   bool isLogEnabled;
   /// Enable/disable advertise
   bool isAdvertiseDataEnabled;
-  uint8_t paddingByte;       ///< pad the remaining byte to be 4 byte aligned
-  char deviceName[32];       ///< Name of the device that may be set via BLE
+  uint8_t paddingByte;  ///< pad the remaining byte to be 4 byte aligned
+  /// Name of the device that may be set via BLE
+  char deviceName[DEVICE_NAME_BUFFER_LENGTH];
   uint32_t loggingInterval;  ///< logging interval in ms. smallest value 5s.
   uint8_t reserve2[84];      ///< Overall size is 128 bytes so that we
                              ///< can define further values in the future.
