@@ -38,11 +38,13 @@
 
 #include "Presentation.h"
 
+#include "app_service/item_store/ItemStore.h"
 #include "app_service/nvm/ProductionParameters.h"
 #include "app_service/power_manager/BatteryMonitor.h"
 #include "app_service/screen/Screen.h"
 #include "app_service/sensor/Sht4x.h"
 #include "app_service/timer_server/TimerServer.h"
+#include "hal/Uart.h"
 #include "stm32wbxx_ll_cortex.h"
 #include "utility/AppDefines.h"
 #include "utility/ErrorHandler.h"
@@ -277,9 +279,22 @@ static bool AppNormalOperationStateCb(Message_Message_t* msg) {
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE) {
     if (msg->header.id == MESSAGE_ID_READOUT_INTERVAL_CHANGE) {
       Presentation_setTimeStep((uint8_t)msg->parameter2);
-    } else if (msg->header.id == MESSAGE_ID_STATE_CHANGE_ERROR) {
+      return true;
+    }
+
+    if (msg->header.id == MESSAGE_ID_STATE_CHANGE_ERROR) {
       // block system!
       HandleUnrecoverableError(msg->parameter2);
+      return true;
+    }
+    if (msg->header.id == MESSAGE_ID_DEVICE_SETTINGS_READ) {
+      ItemStore_SystemConfig_t* cfg =
+          (ItemStore_SystemConfig_t*)msg->parameter2;
+      Trace_TraceFunctionCb_t traceFun = Trace_DevNull;
+      if (cfg->isLogEnabled) {
+        traceFun = Uart_WriteBlocking;
+      }
+      Trace_RegisterTraceFunction(traceFun);
     }
   }
   return EvalBatteryEventCb(msg);
