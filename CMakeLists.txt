@@ -141,6 +141,7 @@ set(APP_SOURCES
     source/app_service/user_button/Button.c
     source/app_service/user_button/ButtonEvent.c
     source/hal/Adc.c
+    source/hal/Crc.c
     source/hal/Clock.c
     source/hal/Flash.c
     source/hal/Gpio.c

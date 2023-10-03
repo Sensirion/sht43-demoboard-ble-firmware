@@ -28,6 +28,8 @@ set(HAL_SOURCES
     Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal.c
     Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal_flash.c
     Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal_flash_ex.c
+    Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal_crc.c
+    Drivers/STM32WBxx_HAL_Driver/Src/stm32wbxx_hal_crc_ex.c
     Utilities/sequencer/stm32_seq.c
     Utilities/lpm/tiny_lpm/stm32_lpm.c
     Middlewares/ST/STM32_WPAN/utilities/otp.c
