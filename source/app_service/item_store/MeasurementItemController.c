@@ -93,7 +93,7 @@ typedef struct _tMeasurementItemController {
   /// system settings
   bool isLoggingIntervalChanged;
   /// Samples that will be inserted into the item store as soon as possible
-  ItemStore_MeasurementSample_t samples;
+  ItemStore_MeasurementSample_t samples ALIGN(8);
 
 } MeasurementItemController_t;
 
@@ -142,11 +142,12 @@ static SampleRequestData_t _sampleRequest;
 static ItemStore_Enumerator_t _sampleEnumerator;
 
 /// Definition of Measurement item controller
-MeasurementItemController_t _measurementItemController = {
+static MeasurementItemController_t _measurementItemController = {
     .loggingIntervalS = 60,
     .remainingTimeS = 60,
     .currentSampleIndex = 0,
     .isSampleReady = false,
+    .isLoggingIntervalChanged = false,
     .isAddItemPossible = true,
     .coefficient = {5.0f / 6.0f, 1.0f / 6.0f},
     .listener.currentMessageHandlerCb = ItemStoreIdleState,
@@ -186,7 +187,23 @@ static bool ItemStoreIdleState(Message_Message_t* msg) {
       }
       _measurementItemController.isAddItemPossible =
           (_measurementItemController.nrOfPendingErase == 0);
-      SaveReadySamples(true);
+
+      // write unsaved changes to the item store
+      if (_measurementItemController.isAddItemPossible) {
+        // when the erase is done we have to save the logging interval if this
+        // was the reason for the erase.
+        if (_measurementItemController.isLoggingIntervalChanged) {
+          Message_Message_t saveMsg = {
+              .header.category = MESSAGE_BROKER_CATEGORY_BLE_SERVICE_REQUEST,
+              .header.id = SERVICE_REQUEST_MESSAGE_ID_SAVE_LOGGING_INTERVAL,
+              .parameter2 = _measurementItemController.loggingIntervalS * 1000};
+          Message_PublishAppMessage(&saveMsg);
+          _measurementItemController.isLoggingIntervalChanged = false;
+        } else {
+          // Saving the samples we may defer to the time event
+          SaveReadySamples(_measurementItemController.isAddItemPossible);
+        }
+      }
       return true;
     }
   }

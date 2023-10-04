@@ -299,9 +299,11 @@ static SVCCTL_EvtAckStatus_t WriteAlternativeDeviceName(
     uint16_t connectionHandle,
     uint8_t* data,
     uint8_t dataLength) {
-  static char alternativeDeviceName[32] = {0};
+  static char alternativeDeviceName[DEVICE_NAME_BUFFER_LENGTH] = {0};
+  // the static variable is initialized only once!
+  memset(alternativeDeviceName, 0, DEVICE_NAME_BUFFER_LENGTH);
   _service.currentConnection = connectionHandle;
-  memcpy(alternativeDeviceName, data, dataLength);
+  memcpy(alternativeDeviceName, data, MIN(dataLength, DEVICE_NAME_MAX_LEN));
   Message_Message_t msg = {
       .header.category = MESSAGE_BROKER_CATEGORY_BLE_SERVICE_REQUEST,
       .header.id = SERVICE_REQUEST_MESSAGE_ID_SET_ALTERNATIVE_DEVICE_NAME,

@@ -45,6 +45,7 @@
 #include "app_service/networking/ble/BleInterface.h"
 #include "app_service/networking/ble/gatt_service/BatteryService.h"
 #include "app_service/networking/ble/gatt_service/DataLoggerService.h"
+#include "app_service/networking/ble/gatt_service/DeviceSettingsService.h"
 #include "app_service/networking/ble/gatt_service/HumidityService.h"
 #include "app_service/networking/ble/gatt_service/ShtService.h"
 #include "app_service/networking/ble/gatt_service/TemperatureService.h"
@@ -160,6 +161,10 @@ static void HandleReadoutIntervalChange(uint8_t readoutIntervalS);
 /// @return true if the response was handled, false otherwise.
 static bool HandleServiceRequestResponse(Message_Message_t* message);
 
+/// Update all characteristics from the device settings
+/// @param message Message with a pointer to the settings
+static void UpdateDeviceSettingCharacteristics(Message_Message_t* message);
+
 /// Try to send the first notification frame
 /// The frame is already prepared but we may lack tx buffer space
 static void TrySendFirstFrame();
@@ -167,6 +172,11 @@ static void TrySendFirstFrame();
 /// Send sample notification frames until all tx buffer space is used up
 /// or no more samples are available
 static void TrySendSampleFrames();
+
+/// Update the Advertisement and set the new value in the characteristic
+/// @param isAdvertiseSamplesEnabled Flag that tells if sample data is
+///                                  advertised.
+static void UpdateAdvertiseSamplesEnable(bool isAdvertiseSamplesEnabled);
 
 /// Struct to store all user defined information for BLE operations
 static BleTypes_ApplicationContext_t gBleApplicationContext = {
@@ -423,6 +433,10 @@ static bool BleDefaultStateCb(Message_Message_t* message) {
       // response back from CPU2.
       return HandleServiceRequestResponse(message);
     }
+    if (message->header.id == BLE_INTERFACE_MSG_ID_UPDATE_DEVICE_SETTINGS) {
+      UpdateDeviceSettingCharacteristics(message);
+      return true;
+    }
   }
 
   // react on ble events (start stop advertizing)
@@ -488,10 +502,19 @@ static bool ForwardToBleAppCb(Message_Message_t* message) {
     return true;
   }
 
-  if (message->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE &&
-      message->header.id == MESSAGE_ID_READOUT_INTERVAL_CHANGE) {
-    HandleReadoutIntervalChange(message->parameter2);
-    return true;
+  if (message->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE) {
+    if (message->header.id == MESSAGE_ID_READOUT_INTERVAL_CHANGE) {
+      HandleReadoutIntervalChange(message->parameter2);
+      return true;
+    }
+    if (message->header.id == MESSAGE_ID_DEVICE_SETTINGS_READ) {
+      Message_Message_t msg = *message;
+      msg.header.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT;
+      msg.header.id = BLE_INTERFACE_MSG_ID_UPDATE_DEVICE_SETTINGS;
+      BleInterface_PublishBleMessage(&msg);
+      return true;
+    }
+    return false;
   }
 
   if (message->header.category == MESSAGE_BROKER_CATEGORY_BATTERY_EVENT) {
@@ -577,6 +600,23 @@ static bool HandleServiceRequestResponse(Message_Message_t* message) {
     TrySendSampleFrames();
     return true;
   }
+  if (bleMsg->head.parameter1 ==
+      SERVICE_REQUEST_MESSAGE_ID_SET_ADVERTISE_DATA_ENABLE) {
+    UpdateAdvertiseSamplesEnable((bool)bleMsg->parameter.responseData);
+    return true;
+  }
+  if (bleMsg->head.parameter1 ==
+      SERVICE_REQUEST_MESSAGE_ID_SET_DEBUG_LOG_ENABLE) {
+    DeviceSettingsService_UpdateIsLogEnabled(
+        (bool)bleMsg->parameter.responseData);
+    return true;
+  }
+  if (bleMsg->head.parameter1 ==
+      SERVICE_REQUEST_MESSAGE_ID_SET_ALTERNATIVE_DEVICE_NAME) {
+    DeviceSettingsService_UpdateAlternativeDeviceName(
+        (const char*)bleMsg->parameter.responsePtr);
+    return true;
+  }
   return false;
 }
 
@@ -625,4 +665,22 @@ static void TrySendSampleFrames() {
         .parameter2 = 0};
     Message_PublishAppMessage(&msg);
   }
+}
+
+static void UpdateAdvertiseSamplesEnable(bool isAdvertiseSamplesEnabled) {
+  gBleApplicationContext.advertisementData = &gRestrictedAdvData;
+  gBleApplicationContext.advertisementDataSize = sizeof(gRestrictedAdvData);
+  if (isAdvertiseSamplesEnabled) {
+    gBleApplicationContext.advertisementData = &gCompleteAdvData;
+    gBleApplicationContext.advertisementDataSize = sizeof(gCompleteAdvData);
+  }
+  DeviceSettingsService_UpdateIsAdvertiseDataEnabled(isAdvertiseSamplesEnabled);
+}
+
+static void UpdateDeviceSettingCharacteristics(Message_Message_t* message) {
+  ItemStore_SystemConfig_t* settings =
+      (ItemStore_SystemConfig_t*)message->parameter2;
+  UpdateAdvertiseSamplesEnable(settings->isAdvertiseDataEnabled);
+  DeviceSettingsService_UpdateAlternativeDeviceName(settings->deviceName);
+  DeviceSettingsService_UpdateIsLogEnabled(settings->isLogEnabled);
 }
