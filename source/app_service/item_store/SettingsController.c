@@ -192,8 +192,8 @@ static bool UpdateAndNotify(Message_Message_t* msg) {
   ItemStore_AddItem(ITEM_DEF_SYSTEM_CONFIG,
                     (ItemStore_ItemStruct_t*)&_actualSettings);
   BleInterface_Message_t bleMessage = {
-      .head.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT,
-      .head.id = BLE_INTERFACE_MSG_ID_SVC_REQ_RESPONSE,
+      .head.category = MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE,
+      .head.id = MESSAGE_ID_DEVICE_SETTINGS_CHANGED,
       .head.parameter1 = msg->header.id,
       .parameter.responseData = msg->parameter2};
   Message_PublishAppMessage((Message_Message_t*)&bleMessage);

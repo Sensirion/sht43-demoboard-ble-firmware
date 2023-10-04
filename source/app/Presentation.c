@@ -39,6 +39,7 @@
 #include "Presentation.h"
 
 #include "app_service/item_store/ItemStore.h"
+#include "app_service/networking/ble/BleGatt.h"
 #include "app_service/nvm/ProductionParameters.h"
 #include "app_service/power_manager/BatteryMonitor.h"
 #include "app_service/screen/Screen.h"
@@ -157,6 +158,16 @@ static void HandleUnrecoverableError(uint32_t errorCode);
 /// Switch temperature unit
 static void SelectTemperatureUnitFahrenheit();
 
+/// Set the logger function.
+/// @param enabled Flag to tell if the log is enabled or not
+static void SetLogEnabled(bool enabled);
+
+/// Function to handle all System State Changes.
+/// Device state change is handled in all states of the presentation controller.
+/// @param msg A message that my contain a device state change information
+/// @return true if the message was a DeviceStateChange message.
+static bool HandleSystemStateChange(Message_Message_t* msg);
+
 /// Publish new readout interval
 ///
 /// By publishing this event explicitly we prevent the ble context
@@ -197,17 +208,7 @@ void Presentation_setTimeStep(uint8_t timeStepSeconds) {
 }
 
 static bool AppBootStateCb(Message_Message_t* msg) {
-  if (msg->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE &&
-      msg->header.id == MESSAGE_ID_PERIPHERALS_INITIALIZED) {
-    _controller.uptimeSeconds = 0;
-    _controller.uptimeSecondsSinceUserEvent = 0;
-    _sht4xReadoutTimer = TimerServer_CreateTimer(TIMER_SERVER_MODE_REPEATED,
-                                                 PublishAppTimeTickCb);
-
-    _controller.blinkTimer = TimerServer_CreateTimer(TIMER_SERVER_MODE_REPEATED,
-                                                     ToggleBatteryLowSymbol);
-
-    TimerServer_Start(_sht4xReadoutTimer, _timeStepDeltaSeconds * 1000);
+  if (HandleSystemStateChange(msg)) {
     return true;
   }
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_TIME_INFORMATION) {
@@ -246,10 +247,8 @@ static bool AppShowVersionStateCb(Message_Message_t* msg) {
     SelectTemperatureUnitFahrenheit();
     return true;
   }
-  if (msg->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE &&
-      msg->header.id == MESSAGE_ID_STATE_CHANGE_ERROR) {
-    // block system!
-    HandleUnrecoverableError(msg->parameter2);
+  if (HandleSystemStateChange(msg)) {
+    return true;
   }
   return EvalBatteryEventCb(msg);
 }
@@ -276,26 +275,8 @@ static bool AppNormalOperationStateCb(Message_Message_t* msg) {
     _controller.uptimeSecondsSinceUserEvent = 0;
     PublishReadoutIntervalIfChanged(SHORT_READOUT_INTERVAL_S);
   }
-  if (msg->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE) {
-    if (msg->header.id == MESSAGE_ID_READOUT_INTERVAL_CHANGE) {
-      Presentation_setTimeStep((uint8_t)msg->parameter2);
-      return true;
-    }
-
-    if (msg->header.id == MESSAGE_ID_STATE_CHANGE_ERROR) {
-      // block system!
-      HandleUnrecoverableError(msg->parameter2);
-      return true;
-    }
-    if (msg->header.id == MESSAGE_ID_DEVICE_SETTINGS_READ) {
-      ItemStore_SystemConfig_t* cfg =
-          (ItemStore_SystemConfig_t*)msg->parameter2;
-      Trace_TraceFunctionCb_t traceFun = Trace_DevNull;
-      if (cfg->isLogEnabled) {
-        traceFun = Uart_WriteBlocking;
-      }
-      Trace_RegisterTraceFunction(traceFun);
-    }
+  if (HandleSystemStateChange(msg)) {
+    return true;
   }
   return EvalBatteryEventCb(msg);
 }
@@ -314,6 +295,52 @@ static bool EvalBatteryEventCb(Message_Message_t* msg) {
     return true;
   }
   return false;
+}
+
+static bool HandleSystemStateChange(Message_Message_t* msg) {
+  if (msg->header.category != MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE) {
+    return false;
+  }
+  if (msg->header.id == MESSAGE_ID_PERIPHERALS_INITIALIZED) {
+    _controller.uptimeSeconds = 0;
+    _controller.uptimeSecondsSinceUserEvent = 0;
+    _sht4xReadoutTimer = TimerServer_CreateTimer(TIMER_SERVER_MODE_REPEATED,
+                                                 PublishAppTimeTickCb);
+
+    _controller.blinkTimer = TimerServer_CreateTimer(TIMER_SERVER_MODE_REPEATED,
+                                                     ToggleBatteryLowSymbol);
+
+    TimerServer_Start(_sht4xReadoutTimer, _timeStepDeltaSeconds * 1000);
+    return true;
+  }
+  if (msg->header.id == MESSAGE_ID_READOUT_INTERVAL_CHANGE) {
+    Presentation_setTimeStep((uint8_t)msg->parameter2);
+    return true;
+  }
+
+  if (msg->header.id == MESSAGE_ID_STATE_CHANGE_ERROR) {
+    // block system!
+    HandleUnrecoverableError(msg->parameter2);
+    return true;
+  }
+  if (msg->header.id == MESSAGE_ID_DEVICE_SETTINGS_READ) {
+    ItemStore_SystemConfig_t* cfg = (ItemStore_SystemConfig_t*)msg->parameter2;
+    SetLogEnabled(cfg->isLogEnabled);
+  }
+  if (msg->header.id == MESSAGE_ID_DEVICE_SETTINGS_CHANGED &&
+      msg->header.parameter1 ==
+          SERVICE_REQUEST_MESSAGE_ID_SET_DEBUG_LOG_ENABLE) {
+    SetLogEnabled((bool)msg->parameter2);
+  }
+  return true;
+}
+
+static void SetLogEnabled(bool enabled) {
+  Trace_TraceFunctionCb_t traceFun = Trace_DevNull;
+  if (enabled) {
+    traceFun = Uart_WriteBlocking;
+  }
+  Trace_RegisterTraceFunction(traceFun);
 }
 
 static void DisplayVersionScreen(Presentation_Controller_t* controller) {
