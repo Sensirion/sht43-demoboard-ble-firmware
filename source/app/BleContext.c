@@ -514,6 +514,12 @@ static bool ForwardToBleAppCb(Message_Message_t* message) {
       BleInterface_PublishBleMessage(&msg);
       return true;
     }
+    if (message->header.id == MESSAGE_ID_DEVICE_SETTINGS_CHANGED) {
+      Message_Message_t msg = *message;
+      msg.header.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT;
+      msg.header.id = BLE_INTERFACE_MSG_ID_SVC_REQ_RESPONSE;
+      BleInterface_PublishBleMessage(&msg);
+    }
     return false;
   }
 
