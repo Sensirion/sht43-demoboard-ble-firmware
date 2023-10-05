@@ -88,4 +88,20 @@ void DataLoggerService_BuildDataFrame(uint8_t txFrameBuffer[TX_FRAME_SIZE],
                                       uint8_t* data,
                                       uint8_t dataLength);
 
+/// Function to check if the supplied handle corresponds to the
+/// SampleDataCharacteristic handle.
+///
+/// When a client subscribes to the SampleData characteristic, the BLE context
+/// needs to trigger the readout of the data. To do so it needs to know
+/// which characteristic is affected.
+///
+/// @param handle Connection handle to be checked
+/// @return true if the handle corresponds to the handle of the SampleData
+///         characteristic; false otherwise.
+bool DataLoggerService_IsSampleDataCharacteristic(uint16_t handle);
+
+/// Function to read the number of requested samples from the service.
+/// @return number of requested samples requestedSamples of the service
+uint16_t DataLoggerService_GetNumberOfRequestedSamples();
+
 #endif  // DATA_LOGGER_SERVICE_H

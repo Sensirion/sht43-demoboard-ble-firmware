@@ -81,8 +81,9 @@ PLACE_IN_SECTION("BLE_DRIVER_CONTEXT") static struct _tService {
   uint16_t serviceHandle;  ///< Service handle
   /// table with characteristics
   BleGatt_ServiceCharacteristic_t characteristic[CHARACTERISTIC_ID_NR_OF_CHARS];
-  uint16_t currentConnection;  ///< Handle to the current connection
-} _service;                    ///< service instance
+  uint16_t currentConnection;     ///< Handle to the current connection
+  uint16_t requestedNrOfSamples;  ///< nr of requested samples
+} _service;                       ///< service instance
 
 /// Uuid of device data logger service
 /// 00008000-B38D-4985-720E-0F993A68EE41
@@ -299,6 +300,8 @@ static void AddSampleDataCharacteristic(struct _tService* service) {
       service->serviceHandle, &sampleDataCharacteristic, value, TX_FRAME_SIZE);
   ASSERT(handle != 0);
   _service.characteristic[CHARACTERISTIC_ID_SAMPLE_DATA].handle = handle;
+  _service.characteristic[CHARACTERISTIC_ID_SAMPLE_DATA].onWrite =
+      NopWriteHandler;
 }
 
 static SVCCTL_EvtAckStatus_t EventHandler(void* void_event) {
@@ -369,13 +372,10 @@ SVCCTL_EvtAckStatus_t ReadRequestedSamples(uint16_t currentConnection,
 SVCCTL_EvtAckStatus_t WriteRequestedSamples(uint16_t currentConnection,
                                             uint8_t* data,
                                             uint8_t dataLength) {
-  Message_Message_t msg = {
-      .header.category = MESSAGE_BROKER_CATEGORY_BLE_SERVICE_REQUEST,
-      .header.id = SERVICE_REQUEST_MESSAGE_ID_SET_REQUESTED_SAMPLES,
-      .parameter2 = *((uint16_t*)data)};
-  Message_PublishAppMessage(&msg);
   // just update the characteristic with this value; isn't very meaningful
   // though
+  _service.requestedNrOfSamples = *((uint16_t*)data);
+
   tBleStatus status = BleGatt_UpdateCharacteristic(
       _service.serviceHandle,
       _service.characteristic[CHARACTERISTIC_ID_REQUEST_SAMPLES].handle, data,
@@ -400,4 +400,13 @@ void DataLoggerService_BuildDataFrame(uint8_t txFrameBuffer[TX_FRAME_SIZE],
   memset(txFrameBuffer, 0, TX_FRAME_SIZE);
   SET_UINT16(txFrameBuffer, frameIndex, 0);
   SET_MEM(txFrameBuffer, data, sizeof(frameIndex), dataLength);
+}
+
+bool DataLoggerService_IsSampleDataCharacteristic(uint16_t handle) {
+  return (handle ==
+          (_service.characteristic[CHARACTERISTIC_ID_SAMPLE_DATA].handle + 2));
+}
+
+uint16_t DataLoggerService_GetNumberOfRequestedSamples() {
+  return _service.requestedNrOfSamples;
 }

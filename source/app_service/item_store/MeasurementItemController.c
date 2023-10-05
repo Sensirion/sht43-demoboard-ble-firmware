@@ -352,7 +352,7 @@ static void BeginReadSamples(bool enumeratorReady) {
   _sampleRequest.enumeratorStartIndex = 0;
   if (availableSamples > _sampleRequest.requestedNrOfSamples) {
     _sampleRequest.enumeratorStartIndex =
-        availableSamples - _sampleRequest.requestedNrOfSamples;
+        (availableSamples - _sampleRequest.requestedNrOfSamples) / 2;
   }
   // compute the age of the last sample in flash
   _sampleRequest.metadata.ageOfLatestSample =
