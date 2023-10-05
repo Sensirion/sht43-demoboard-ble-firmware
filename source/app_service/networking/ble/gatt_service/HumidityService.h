@@ -38,7 +38,7 @@
 /// Setup the humidity service
 ///
 /// The required fields are specified in
-/// https://confluence/display/GC/BLE+Services
+/// https://github.com/Sensirion/ble-services/blob/main/ble-services.yml
 void HumidityService_Create();
 
 /// Set the actual measured humidity

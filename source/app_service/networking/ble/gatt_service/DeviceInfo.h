@@ -39,11 +39,9 @@
 
 #include <stdint.h>
 
-/// Setup the device information service
-/// The required fields are specified in
-/// https://github.com/Sensirion/arduino-ble-gadget/blob/master/documents/Sensirion_BLE_communication_protocol.pdf
-/// In addition to this, the reboot request is added to the device information
-/// service. This is required to trigger the Over The Air update.
+/// Setup the device information service.
+/// The service is specified in
+/// https://github.com/Sensirion/ble-services/blob/main/ble-services.yml
 void DeviceInfo_Create();
 
 #endif  // DEVICE_INFO_H

@@ -42,8 +42,8 @@
 
 /// Setup the sht service
 ///
-/// The required fields are specified in
-/// https://confluence/display/GC/BLE+Services
+/// The service is specified in
+/// https://github.com/Sensirion/ble-services/blob/main/ble-services.yml
 void ShtService_Create();
 
 /// Set the serial number of the sht sensor

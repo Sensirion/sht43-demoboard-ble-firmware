@@ -39,8 +39,8 @@
 
 /// Setup the battery service
 ///
-/// The required fields are specified in
-/// https://confluence/display/GC/BLE+Services
+/// The service is specified in
+/// https://github.com/Sensirion/ble-services/blob/main/ble-services.yml
 void BatteryService_Create();
 
 /// Set the actual battery level

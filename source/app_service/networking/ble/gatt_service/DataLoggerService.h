@@ -44,8 +44,8 @@
 #define TX_FRAME_SIZE 20
 
 /// Setup the data logger service
-/// The required fields are specified in
-/// https://github.com/Sensirion/arduino-ble-gadget/blob/master/documents/Sensirion_BLE_communication_protocol.pdf
+/// The service is specified in
+/// https://github.com/Sensirion/ble-services/blob/main/ble-services.yml
 void DataLoggerService_Create();
 
 /// Write the new value of the dataLogging interval to the characteristic.
