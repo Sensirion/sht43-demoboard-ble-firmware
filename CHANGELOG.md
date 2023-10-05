@@ -3,6 +3,29 @@
 This changelog lists the most important changes for each release version. For
 the full log, please refer to the git commit history.
 
+## v0.4.0 (05-10-2023)
+**General**
+
+* Repository was moved to github.
+* Implement of persistent item store on flash.
+* Compute CRC with Hardware for sensor data and device settings.
+* Implement of BLE_GATT services:
+  * DataLogging Service.
+  * Battery Service.
+  * DeviceSettings service:
+    * Enable/Disable UART tracing over BLE.
+    * Enable/Disable measurement sample advertisement over BLE.
+    * Save an alternative device name.
+  * Humidity Service.
+  * Temperature Service.
+  * SHT SerialNumber Service.
+
+**CI Pipeline**
+
+* Docker image available to execute each build step
+* Build pipeline ported to github actions
+* clang-tidy checks added to pipeline
+
 ## v0.3.0 (16-08-2023)
 **General**
 
