@@ -40,7 +40,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/// Setup the device settings service
+/// Setup the device settings service.
 /// The required fields are specified in
 /// https://github.com/Sensirion/ble-services/blob/main/ble-services.yml
 void DeviceSettingsService_Create();

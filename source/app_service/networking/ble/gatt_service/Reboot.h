@@ -40,6 +40,8 @@
 /// The reboot service contains one single characteristic, the
 /// *RebootCharacteristic*. This characteristic is used to trigger
 /// a reboot or an OTA firmware update.
+/// The service is specified in
+/// https://github.com/Sensirion/ble-services/blob/main/ble-services.yml
 void Reboot_Create();
 
 #endif  // REBOOT_H
