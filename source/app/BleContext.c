@@ -382,9 +382,29 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
           BleInterface_PublishBleMessage((Message_Message_t*)&msg);
           break;
         }
+        case ACI_GATT_ATTRIBUTE_MODIFIED_VSEVT_CODE: {
+          aci_gatt_attribute_modified_event_rp0* attribute_modified =
+              (aci_gatt_attribute_modified_event_rp0*)bleCoreEvent->data;
+
+          if (DataLoggerService_IsSampleDataCharacteristic(
+                  attribute_modified->Attr_Handle)) {
+            // Trigger the download of samples if a client has subscribed
+            if (attribute_modified->Attr_Data[0] & 1) {
+              Message_Message_t msg = {
+                  .header.category =
+                      MESSAGE_BROKER_CATEGORY_BLE_SERVICE_REQUEST,
+                  .header.id = SERVICE_REQUEST_MESSAGE_ID_SET_REQUESTED_SAMPLES,
+                  .parameter2 =
+                      DataLoggerService_GetNumberOfRequestedSamples()};
+              Message_PublishAppMessage(&msg);
+            }
+          }
+          break;
+        }
+        default:
+          break;
       }
       break;  // HCI_VENDOR_SPECIFIC_DEBUG_EVT_CODE
-
     default:
       break;
   }
@@ -589,10 +609,12 @@ static bool HandleServiceRequestResponse(Message_Message_t* message) {
         (BleTypes_SamplesMetaData_t*)bleMsg->parameter.responsePtr;
     _sampleNotification.currentFrameIndex = 0;
     _sampleNotification.samplesTransmitted = 0;
+
     _sampleNotification.nrOfSamplesToTransmit = metadata->numberOfSamples;
     DataLoggerService_BuildHeaderFrame(_sampleNotification.txFrameBuffer,
                                        metadata);
     TrySendFirstFrame();
+
     return true;
   }
   if (bleMsg->head.parameter1 == SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES) {
