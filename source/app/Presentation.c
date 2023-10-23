@@ -40,6 +40,7 @@
 
 #include "app_service/item_store/ItemStore.h"
 #include "app_service/networking/ble/BleGatt.h"
+#include "app_service/networking/ble/BleInterface.h"
 #include "app_service/nvm/ProductionParameters.h"
 #include "app_service/power_manager/BatteryMonitor.h"
 #include "app_service/screen/Screen.h"
@@ -188,6 +189,7 @@ static void PublishReadoutIntervalIfChanged(uint8_t readoutIntervalSec) {
 /// presentation controller instance
 Presentation_Controller_t _controller = {
     .listener = {.receiveMask = MESSAGE_BROKER_CATEGORY_TIME_INFORMATION |
+                                MESSAGE_BROKER_CATEGORY_BLE_EVENT |
                                 MESSAGE_BROKER_CATEGORY_BATTERY_EVENT |
                                 MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE |
                                 MESSAGE_BROKER_CATEGORY_BUTTON_EVENT |
@@ -274,6 +276,13 @@ static bool AppNormalOperationStateCb(Message_Message_t* msg) {
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_BUTTON_EVENT) {
     _controller.uptimeSecondsSinceUserEvent = 0;
     PublishReadoutIntervalIfChanged(SHORT_READOUT_INTERVAL_S);
+    return true;
+  }
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_BLE_EVENT &&
+      msg->header.id == BLE_INTERFACE_MSG_ID_DISCONNECT) {
+    _controller.uptimeSecondsSinceUserEvent = 0;
+    PublishReadoutIntervalIfChanged(SHORT_READOUT_INTERVAL_S);
+    return true;
   }
   if (HandleSystemStateChange(msg)) {
     return true;
