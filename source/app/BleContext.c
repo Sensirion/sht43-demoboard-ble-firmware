@@ -269,6 +269,8 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
             .header.id = BLE_INTERFACE_MSG_ID_DISCONNECT};
         Message_PublishAppMessage(&msg);
       }
+      // stop advertisement
+      BleGap_AdvertiseCancel(&gBleApplicationContext);
       // restart advertising
       BleGap_AdvertiseRequest(&gBleApplicationContext,
                               gBleApplicationContext.currentAdvertisementMode);
