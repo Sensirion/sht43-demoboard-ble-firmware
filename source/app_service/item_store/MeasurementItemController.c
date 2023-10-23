@@ -130,6 +130,10 @@ static void CountSamples(bool enumeratorReady);
 /// @param enumeratorReady
 static void BeginReadSamples(bool enumeratorReady);
 
+/// Compute averaging coefficients
+/// @param loggingInterval used logging interval
+static void ComputeAveragingCoefficients(uint32_t loggingInterval);
+
 /// Read a bunch of data into the sample cache and notify the data to the
 /// BLE context;
 /// @param enumeratorReady
@@ -153,6 +157,7 @@ static MeasurementItemController_t _measurementItemController = {
     .listener.currentMessageHandlerCb = ItemStoreIdleState,
     .listener.receiveMask = MESSAGE_BROKER_CATEGORY_ITEM_STORE |
                             MESSAGE_BROKER_CATEGORY_SENSOR_VALUE |
+                            MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE |
                             MESSAGE_BROKER_CATEGORY_TIME_INFORMATION |
                             MESSAGE_BROKER_CATEGORY_BLE_SERVICE_REQUEST};
 
@@ -166,6 +171,15 @@ static bool ItemStoreIdleState(Message_Message_t* msg) {
       msg->header.id == SHT4X_MESSAGE_ID_SENSOR_DATA &&
       msg->header.parameter1 > SHT4X_COMMAND_READ_SERIAL_NUMBER) {
     UpdateMovingAverage((Sht4x_SensorMessage_t*)msg);
+    return true;
+  }
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE &&
+      msg->header.id == MESSAGE_ID_DEVICE_SETTINGS_READ) {
+    ItemStore_SystemConfig_t* settings =
+        (ItemStore_SystemConfig_t*)msg->parameter2;
+    _measurementItemController.loggingIntervalS =
+        settings->loggingInterval / 1000;
+    ComputeAveragingCoefficients(_measurementItemController.loggingIntervalS);
     return true;
   }
   if ((msg->header.category == MESSAGE_BROKER_CATEGORY_TIME_INFORMATION) &&
@@ -277,12 +291,10 @@ static bool HandleBleServiceRequest(Message_Message_t* message) {
       newInterval = 10;
     }
     if (newInterval != _measurementItemController.loggingIntervalS) {
+      _measurementItemController.isLoggingIntervalChanged = true;
       _measurementItemController.loggingIntervalS = newInterval;
       // accumulate at most over one hour
-      float divider = MIN(newInterval, 3600) / 5.0f;
-      _measurementItemController.coefficient[1] = 1.0f / divider;
-      _measurementItemController.coefficient[0] =
-          1.0f - _measurementItemController.coefficient[1];
+      ComputeAveragingCoefficients(newInterval);
       ItemStore_DeleteAllItems(ITEM_DEF_MEASUREMENT_SAMPLE);
     }
     return true;
@@ -391,4 +403,11 @@ static void ReadMoreSamples(bool enumeratorReady) {
   _sampleRequest.responseData.data = (uint8_t*)_sampleRequest.samplesCache;
   msg.parameter.responsePtr = &_sampleRequest.responseData;
   BleInterface_PublishBleMessage((Message_Message_t*)&msg);
+}
+
+static void ComputeAveragingCoefficients(uint32_t loggingInterval) {
+  float divider = MIN(loggingInterval, 3600) / 5.0f;
+  _measurementItemController.coefficient[1] = 1.0f / divider;
+  _measurementItemController.coefficient[0] =
+      1.0f - _measurementItemController.coefficient[1];
 }
