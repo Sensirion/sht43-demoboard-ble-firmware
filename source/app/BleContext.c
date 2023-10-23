@@ -264,9 +264,13 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
           gBleApplicationContext.bleApplicationContextLegacy.connectionHandle) {
         gBleApplicationContext.deviceConnectionStatus = BLE_INTERFACE_IDLE;
         gBleApplicationContext.bleApplicationContextLegacy.connectionHandle = 0;
-        LOG_DEBUG_CALLSTATUS("Disconnected complete event",
-                             disconnectedCompleteEvent->Reason);
+        Message_Message_t msg = {
+            .header.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT,
+            .header.id = BLE_INTERFACE_MSG_ID_DISCONNECT};
+        Message_PublishAppMessage(&msg);
       }
+      // stop advertisement
+      BleGap_AdvertiseCancel(&gBleApplicationContext);
       // restart advertising
       BleGap_AdvertiseRequest(&gBleApplicationContext,
                               gBleApplicationContext.currentAdvertisementMode);
