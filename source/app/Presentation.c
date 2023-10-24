@@ -46,6 +46,7 @@
 #include "app_service/screen/Screen.h"
 #include "app_service/sensor/Sht4x.h"
 #include "app_service/timer_server/TimerServer.h"
+#include "app_service/user_button/Button.h"
 #include "hal/Uart.h"
 #include "stm32wbxx_ll_cortex.h"
 #include "utility/AppDefines.h"
@@ -77,6 +78,7 @@ typedef struct _tPresentation_Controller {
   BatteryMonitor_AppState_t batteryState;  ///< application state of battery
   bool lowBatterySymbolOn;                 ///< Flag to indicate if low battery
                                            ///< Symbol is displayed on screen.
+  bool bleOn;                              ///< display BLE symbol on screen
   uint8_t blinkTimer;                      ///< Id of battery symbol blink
                                            ///< timer.
   float temperature;                       ///< evaluated temperature
@@ -196,6 +198,7 @@ Presentation_Controller_t _controller = {
                                 MESSAGE_BROKER_CATEGORY_SENSOR_VALUE,
                  .currentMessageHandlerCb = AppBootStateCb},
     .TemperatureConversionCb = Sht4x_TicksToTemperatureCelsius,
+    .bleOn = true,
     .DisplayUnitCb = Screen_DisplayCelsius2};
 
 MessageListener_Listener_t* Presentation_ControllerInstance() {
@@ -274,6 +277,9 @@ static bool AppNormalOperationStateCb(Message_Message_t* msg) {
     return true;
   }
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_BUTTON_EVENT) {
+    if (msg->header.id == BUTTON_EVENT_LONG_PRESS) {
+      _controller.bleOn = !_controller.bleOn;
+    }
     _controller.uptimeSecondsSinceUserEvent = 0;
     PublishReadoutIntervalIfChanged(SHORT_READOUT_INTERVAL_S);
     return true;
@@ -397,6 +403,7 @@ static void DisplayNormalOperationScreen(
   // just display the last change; in case of blinking
   // battery symbol, this will just redraw the last active value
   Screen_DisplayLowBattery(_controller.lowBatterySymbolOn);
+  Screen_DisplayBluetoothSymbol(_controller.bleOn);
 
   Screen_UpdatePendingRequests();
 }
