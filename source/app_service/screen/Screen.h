@@ -255,6 +255,12 @@ void Screen_DisplayPoint7(bool on);
 ///           shall be switched on or off.
 void Screen_DisplayLowBattery(bool on);
 
+/// Display the CMOSens symbol on the screen.
+///
+/// @param on Flag to indicate if the CMOSens symbol
+///           shall be switched on or off.
+void Screen_DisplayCmoSens(bool on);
+
 /// Displays at most four digits from the supplied integer value.
 ///
 /// @param value An integer value that shall be displayed.

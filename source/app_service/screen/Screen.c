@@ -361,6 +361,11 @@ void Screen_DisplayBluetoothSymbol(bool on) {
                 (on << LCD_SEG22_SHIFT));
 }
 
+void Screen_DisplayCmoSens(bool on) {
+  HAL_LCD_Write(&gLcd, LCD_COM_2_0, ~(1U << LCD_SEG22_SHIFT),
+                (on << LCD_SEG22_SHIFT));
+}
+
 void Screen_DisplayLowBattery(bool on) {
   HAL_LCD_Write(&gLcd, LCD_COM_0_0, ~(1U << LCD_SEG13_SHIFT),
                 (uint32_t)on << LCD_SEG13_SHIFT);

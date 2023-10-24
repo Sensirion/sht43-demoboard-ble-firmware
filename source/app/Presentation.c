@@ -404,6 +404,7 @@ static void DisplayNormalOperationScreen(
   // battery symbol, this will just redraw the last active value
   Screen_DisplayLowBattery(_controller.lowBatterySymbolOn);
   Screen_DisplayBluetoothSymbol(_controller.bleOn);
+  Screen_DisplayCmoSens(true);
 
   Screen_UpdatePendingRequests();
 }
