@@ -81,14 +81,23 @@ typedef struct _tPresentation_Controller {
   bool bleOn;                              ///< display BLE symbol on screen
   uint8_t blinkTimer;                      ///< Id of battery symbol blink
                                            ///< timer.
-  float temperature;                       ///< evaluated temperature
+  float temperatureC;                      ///< Temperature in degrees celsius
   float humidity;                          ///< evaluated humidity
   uint64_t uptimeSeconds;                  ///< nr of seconds the system is up
   uint64_t uptimeSecondsSinceUserEvent;    ///< nr of seconds since last user
                                            ///< user interaction
-  void (*DisplayUnitCb)(bool on);          ///< Display unit on screen callback
+
+  /// Callback to display either relative humidity or dewPoint
+  void (*DisplayValueRow1)(float temperature, float relativeHumidity);
+
+  /// Callback to display temperature unit on row 1 on the screen
+  void (*DisplayTemperatureUnit1Cb)(bool on);
+
+  /// Callback to display temperature unit on row 2 the screen
+  void (*DisplayTemperatureUnit2Cb)(bool on);
+
   float (*TemperatureConversionCb)(
-      uint16_t temperatureTicks);  ///< Convert tick to temperature callback
+      float temperature);  ///< Convert celsius to fahrenheit if required
 
 } Presentation_Controller_t;
 
@@ -138,6 +147,16 @@ static void DisplayNormalOperationScreen(Presentation_Controller_t* controller);
 /// @param controller instance of the presentation controller
 static void LogRhtValues(Presentation_Controller_t* controller);
 
+/// Convert to temperature to fahrenheit
+/// @param temperatureC Temperature in celsius
+/// @return temperature in degrees fahrenheit
+static float TemperatureToFahrenheit(float temperatureC);
+
+/// Return temperature as it is
+/// @param temperatureC Temperature in celsius
+/// @return temperature in degrees celsius
+static float TemperatureToCelsius(float temperatureC);
+
 /// Log the firmware version to uart
 ///
 static void LogFirmwareVersion();
@@ -147,6 +166,16 @@ static void LogFirmwareVersion();
 ///
 /// @param controller instance of the presentation controller
 static void DisplayVersionScreen(Presentation_Controller_t* controller);
+
+/// Function to display relative humidity on screen
+/// @param temperature measured temperature
+/// @param relativeHumidity measured relative humidity
+static void DisplayRhOnScreen(float temperature, float relativeHumidity);
+
+/// Function to display dew point on screen
+/// @param temperature measured temperature
+/// @param relativeHumidity measured relative humidity
+static void DisplayDewPointOnScreen(float temperature, float relativeHumidity);
 
 /// helper function to present the new sensor values
 /// @param controller pointer to presentation controller
@@ -197,9 +226,11 @@ Presentation_Controller_t _controller = {
                                 MESSAGE_BROKER_CATEGORY_BUTTON_EVENT |
                                 MESSAGE_BROKER_CATEGORY_SENSOR_VALUE,
                  .currentMessageHandlerCb = AppBootStateCb},
-    .TemperatureConversionCb = Sht4x_TicksToTemperatureCelsius,
+    .TemperatureConversionCb = TemperatureToCelsius,
     .bleOn = true,
-    .DisplayUnitCb = Screen_DisplayCelsius2};
+    .DisplayValueRow1 = DisplayRhOnScreen,
+    .DisplayTemperatureUnit1Cb = Screen_DisplayCelsius1,
+    .DisplayTemperatureUnit2Cb = Screen_DisplayCelsius2};
 
 MessageListener_Listener_t* Presentation_ControllerInstance() {
   return &_controller.listener;
@@ -279,6 +310,12 @@ static bool AppNormalOperationStateCb(Message_Message_t* msg) {
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_BUTTON_EVENT) {
     if (msg->header.id == BUTTON_EVENT_LONG_PRESS) {
       _controller.bleOn = !_controller.bleOn;
+    } else if (msg->header.id == BUTTON_EVENT_SHORT_PRESS) {
+      if (_controller.DisplayValueRow1 == DisplayDewPointOnScreen) {
+        _controller.DisplayValueRow1 = DisplayRhOnScreen;
+      } else {
+        _controller.DisplayValueRow1 = DisplayDewPointOnScreen;
+      }
     }
     _controller.uptimeSecondsSinceUserEvent = 0;
     PublishReadoutIntervalIfChanged(SHORT_READOUT_INTERVAL_S);
@@ -382,23 +419,19 @@ static void DisplayVersionScreen(Presentation_Controller_t* controller) {
 static void DisplayNormalOperationScreen(
     Presentation_Controller_t* controller) {
   // Display the measured values for temperature and humidity
-  Screen_DisplaySymbolCb_t rowTop[] = {
-      Screen_DisplaySymbol4, Screen_DisplaySymbol3, Screen_DisplaySymbol2,
-      Screen_DisplaySymbol1};
+
   Screen_DisplaySymbolCb_t rowBottom[] = {
       Screen_DisplaySymbol8, Screen_DisplaySymbol7, Screen_DisplaySymbol6,
       Screen_DisplaySymbol5};
 
-  Screen_DisplayFourDigits(controller->humidity * 100, rowTop,
-                           Screen_DisplayMinusTop);
-  Screen_DisplayFourDigits(controller->temperature * 100, rowBottom,
-                           Screen_DisplayMinusBottom);
+  Screen_DisplayFourDigits(
+      _controller.TemperatureConversionCb(controller->temperatureC) * 100,
+      rowBottom, Screen_DisplayMinusBottom);
 
-  Screen_DisplayPoint2(true);
   Screen_DisplayPoint6(true);
 
-  Screen_DisplayRh(true);
-  _controller.DisplayUnitCb(true);
+  _controller.DisplayValueRow1(controller->temperatureC, controller->humidity);
+  _controller.DisplayTemperatureUnit2Cb(true);
 
   // just display the last change; in case of blinking
   // battery symbol, this will just redraw the last active value
@@ -409,6 +442,29 @@ static void DisplayNormalOperationScreen(
   Screen_UpdatePendingRequests();
 }
 
+static void DisplayRhOnScreen(float temperature, float relativeHumidity) {
+  Screen_DisplaySymbolCb_t rowTop[] = {
+      Screen_DisplaySymbol4, Screen_DisplaySymbol3, Screen_DisplaySymbol2,
+      Screen_DisplaySymbol1};
+  Screen_DisplayFourDigits(relativeHumidity * 100, rowTop,
+                           Screen_DisplayMinusTop);
+  Screen_DisplayPoint2(true);
+  Screen_DisplayRh(true);
+  _controller.DisplayTemperatureUnit1Cb(false);
+}
+
+static void DisplayDewPointOnScreen(float temperature, float relativeHumidity) {
+  Screen_DisplaySymbolCb_t rowTop[] = {
+      Screen_DisplaySymbol4, Screen_DisplaySymbol3, Screen_DisplaySymbol2,
+      Screen_DisplaySymbol1};
+  float dewPoint = Sht4x_DewPointC(temperature, relativeHumidity);
+  Screen_DisplayFourDigits(_controller.TemperatureConversionCb(dewPoint) * 100,
+                           rowTop, Screen_DisplayMinusTop);
+  Screen_DisplayPoint2(true);
+  _controller.DisplayTemperatureUnit1Cb(true);
+  Screen_DisplayRh(false);
+}
+
 static void LogRhtValues(Presentation_Controller_t* controller) {
   // for some reason the floating point is not handled properly
   // by sprintf
@@ -416,8 +472,8 @@ static void LogRhtValues(Presentation_Controller_t* controller) {
   int humidityDec =
       (int)((controller->humidity - (float)humidityInt + 0.5f) * 100);
 
-  int tempInt = (int)controller->temperature;
-  int tempDec = (int)((controller->temperature - (float)tempInt + 0.5f) * 100);
+  int tempInt = (int)controller->temperatureC;
+  int tempDec = (int)((controller->temperatureC - (float)tempInt + 0.5f) * 100);
   LOG_INFO(
       "SHT43 read out -> "
       "\tTemperature = %i.%i; Humidity = %i.%i\n",
@@ -428,8 +484,9 @@ static void HandleNewSensorValues(Presentation_Controller_t* controller,
                                   Sht4x_SensorMessage_t* msg) {
   controller->humidity =
       Sht4x_TicksToHumidity(msg->data.measurement.humidityTicks);
-  controller->temperature = _controller.TemperatureConversionCb(
-      msg->data.measurement.temperatureTicks);
+
+  controller->temperatureC =
+      Sht4x_TicksToTemperatureCelsius(msg->data.measurement.temperatureTicks);
   DisplayNormalOperationScreen(controller);
   LogRhtValues(controller);
 }
@@ -477,6 +534,15 @@ static void PublishAppTimeTickCb(void) {
 }
 
 static void SelectTemperatureUnitFahrenheit() {
-  _controller.TemperatureConversionCb = Sht4x_TicksToTemperatureFahrenheit;
-  _controller.DisplayUnitCb = Screen_DisplayFahrenheit2;
+  _controller.TemperatureConversionCb = TemperatureToFahrenheit;
+  _controller.DisplayTemperatureUnit1Cb = Screen_DisplayFahrenheit1;
+  _controller.DisplayTemperatureUnit2Cb = Screen_DisplayFahrenheit2;
+}
+
+static float TemperatureToFahrenheit(float temperatureC) {
+  return temperatureC * 1.8f + 32;
+}
+
+static float TemperatureToCelsius(float temperatureC) {
+  return temperatureC;
 }

@@ -118,4 +118,10 @@ float Sht4x_TicksToTemperatureFahrenheit(uint16_t ticks);
 /// @return Humidity measured by the SHT in [%rH]
 float Sht4x_TicksToHumidity(uint16_t ticks);
 
+/// Calculate the dew point from temperature and relative humidity
+/// @param temperatureC Temperature in celsius
+/// @param humidityRh Relative humidity in %
+/// @return computed dew point
+float Sht4x_DewPointC(float temperatureC, float humidityRh);
+
 #endif  // SHT4X_H

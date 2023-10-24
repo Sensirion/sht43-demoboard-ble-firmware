@@ -42,6 +42,7 @@
 #include "hal/I2c3.h"
 #include "utility/scheduler/MessageBroker.h"
 
+#include <math.h>
 #include <stdbool.h>
 
 /// Address of the SHT
@@ -162,6 +163,14 @@ float Sht4x_TicksToTemperatureFahrenheit(uint16_t ticks) {
 
 float Sht4x_TicksToHumidity(uint16_t ticks) {
   return (float)(ticks * (125.F / 65535.F)) - 6.F;
+}
+
+float Sht4x_DewPointC(float temperatureC, float humidityRh) {
+  static const float b = 17.62f;
+  static const float c = 243.12f;
+  float gamma =
+      logf(humidityRh / 100.f) + ((b * temperatureC) / (c + temperatureC));
+  return (c * gamma) / (b - gamma);
 }
 
 void Sht4x_Init(MessageBroker_Broker_t* broker) {
