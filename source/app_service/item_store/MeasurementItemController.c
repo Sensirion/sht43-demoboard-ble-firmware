@@ -40,6 +40,7 @@
 #include "app_service/sensor/Sht4x.h"
 #include "utility/AppDefines.h"
 #include "utility/ErrorHandler.h"
+#include "utility/log/Log.h"
 #include "utility/scheduler/MessageId.h"
 
 /// Structure used while serving a data readout request.
@@ -173,14 +174,22 @@ static bool ItemStoreIdleState(Message_Message_t* msg) {
     UpdateMovingAverage((Sht4x_SensorMessage_t*)msg);
     return true;
   }
-  if (msg->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE &&
-      msg->header.id == MESSAGE_ID_DEVICE_SETTINGS_READ) {
-    ItemStore_SystemConfig_t* settings =
-        (ItemStore_SystemConfig_t*)msg->parameter2;
-    _measurementItemController.loggingIntervalS =
-        settings->loggingInterval / 1000;
-    ComputeAveragingCoefficients(_measurementItemController.loggingIntervalS);
-    return true;
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE) {
+    if (msg->header.id == MESSAGE_ID_PERIPHERALS_INITIALIZED) {
+      if (msg->header.parameter1 == 1) {
+        // Only delete the items in case of a power on reset
+        ItemStore_DeleteAllItems(ITEM_DEF_MEASUREMENT_SAMPLE);
+      }
+      return true;
+    }
+    if (msg->header.id == MESSAGE_ID_DEVICE_SETTINGS_READ) {
+      ItemStore_SystemConfig_t* settings =
+          (ItemStore_SystemConfig_t*)msg->parameter2;
+      _measurementItemController.loggingIntervalS =
+          settings->loggingInterval / 1000;
+      ComputeAveragingCoefficients(_measurementItemController.loggingIntervalS);
+      return true;
+    }
   }
   if ((msg->header.category == MESSAGE_BROKER_CATEGORY_TIME_INFORMATION) &&
       (msg->header.id == MESSAGE_ID_TIME_INFO_TIME_ELAPSED)) {
