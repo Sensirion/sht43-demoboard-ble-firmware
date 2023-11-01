@@ -7,44 +7,69 @@ on:
     pull_request:
 
 jobs:
+
     check_and_build:
-      env:
-        workdir: "/workdir"
       runs-on: ubuntu-22.04
-      container:
-          image: ghcr.io/sensirion/sht43-demoboard-docker:main
-          credentials:
-              username: ${{ github.triggering_actor }}
-              password: ${{ secrets.GITHUB_TOKEN }}
-          volumes:
-              - ${{github.workspace}}:/workdir
+      env:
+        workdir: /workdir
       steps:
-            - name: Checkout
-              uses: actions/checkout@v3
-            - name: Make build scripts executable
-              run: chmod 777 build_scripts/*.sh
-            - name: Check codebase
-              run: |
-                build_scripts/check.sh
-            - name: Build codebase
-              run: |
-                build_scripts/build_source.sh
-            - name: Build docu
-              run: |
-                build_scripts/build_docu.sh
-            - name: upload-build
-              uses: actions/upload-artifact@v3
-              with:
-                name: sht43-ble-firmware
-                path: |
-                  build/**/SHT43_DB-*.bin
-                  build/**/SHT43_DB-*.elf
-                  build/**/SHT43_DB-*.hex
-                  build/**/SHT43_DB-*.map
-            - name: Upload docu
-              uses: actions/upload-pages-artifact@v1
-              with:
-                path: documentation/doxygen/output/html
+        - run: mkdir ~/image-cache
+        - name: Login to docker registry
+          uses: docker/login-action@v3
+          with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+        - name: Image cache
+          id: image-cache
+          uses: actions/cache@v3
+          with:
+              path: ~/image-cache
+              key: image-cache-${{ runner.os }}
+        - if: steps.image-cache.outputs.cache-hit != 'true'
+          run: |
+            /usr/bin/docker pull ghcr.io/sensirion/sht43-demoboard-docker:main
+            /usr/bin/docker save -o ~/image-cache/sht43-demoboard-docker.tar ghcr.io/sensirion/sht43-demoboard-docker:main
+
+        - if: steps.image-cache.outputs.cache-hit == 'true'
+          run: |
+            /usr/bin/docker load -i ~/image-cache/sht43-demoboard-docker.tar
+
+        - name: Start container
+          run: |
+            /usr/bin/docker create --name sht43-demoboard-container \
+            -v "/home/runner/work/sht43-demoboard-ble-firmware/sht43-demoboard-ble-firmware":"/workdir"\
+            -v "/home/runner/work":"/__w"\
+            --workdir /__w/sht43-demoboard-ble-firmware/sht43-demoboard-ble-firmware\
+            --entrypoint "tail" ghcr.io/sensirion/sht43-demoboard-docker:main "-f" "/dev/null"
+            /usr/bin/docker start sht43-demoboard-container
+
+        - name: Checkout
+          uses: actions/checkout@v3
+        - name: Make build scripts executable
+          run: chmod 777 build_scripts/*.sh
+        - name: Check codebase
+          run: |
+            build_scripts/check.sh
+        - name: Build codebase
+          run: |
+            build_scripts/build_source.sh
+        - name: Build docu
+          run: |
+            build_scripts/build_docu.sh
+        - name: upload-build
+          uses: actions/upload-artifact@v3
+          with:
+            name: sht43-ble-firmware
+            path: |
+              build/**/SHT43_DB-*.bin
+              build/**/SHT43_DB-*.elf
+              build/**/SHT43_DB-*.hex
+              build/**/SHT43_DB-*.map
+        - name: Upload docu
+          uses: actions/upload-pages-artifact@v1
+          with:
+            path: documentation/doxygen/output/html
     deploy_pages:
       # Specify runner + deployment step
       runs-on: ubuntu-22.04
