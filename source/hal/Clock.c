@@ -38,6 +38,7 @@
 #include "Clock.h"
 
 #include "stm32wbxx_hal.h"
+#include "stm32wbxx_ll_rcc.h"
 #include "utility/ErrorHandler.h"
 
 /// Initialize and configure the  peripheral clocks
@@ -130,4 +131,10 @@ static void ResetRtcBackupDomain() {
     __HAL_RCC_BACKUPRESET_FORCE();
     __HAL_RCC_BACKUPRESET_RELEASE();
   }
+}
+
+bool Clock_ReadAndClearPorActiveFlag() {
+  bool por = LL_RCC_IsActiveFlag_BORRST();
+  LL_RCC_ClearResetFlags();
+  return por;
 }

@@ -39,6 +39,7 @@
 #ifndef CLOCK_H
 #define CLOCK_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /// Initialize and configure the all relevant clocks
@@ -50,5 +51,14 @@
 /// initialized.
 /// @param hseTuning tuning value for the HSE oscillator
 void Clock_ConfigureSystemAndPeripheralClocks(uint8_t hseTuning);
+
+/// Read the power on reset flag and clear the reset flags afterwards.
+///
+/// We want to distinguish between a soft reset and a reset caused by low
+/// voltage. The soft reset is considered to be very fast and it will not
+/// break the time sequence of the logged samples.
+/// A brown oo
+/// @return true if the POR was active; false otherwise.
+bool Clock_ReadAndClearPorActiveFlag();
 
 #endif  // CONFIGURE_CLOCK_H
