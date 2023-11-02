@@ -13,7 +13,7 @@ jobs:
       env:
         workdir: /workdir
       steps:
-        - run: mkdir ~/image-cache
+        - run: mkdir ~/image_cache
         - name: Login to docker registry
           uses: docker/login-action@v3
           with:
@@ -24,24 +24,16 @@ jobs:
           id: image-cache
           uses: actions/cache@v3
           with:
-              path: ~/image-cache
-              key: image-cache
+              path: ~/image_cache/sht43-demoboard-docker.tar
+              key: docker-image-cache
         - if: steps.image-cache.outputs.cache-hit != 'true'
           run: |
             /usr/bin/docker pull ghcr.io/sensirion/sht43-demoboard-docker:main
-            /usr/bin/docker save -o ~/image-cache/sht43-demoboard-docker.tar ghcr.io/sensirion/sht43-demoboard-docker:main
+            /usr/bin/docker save -o ~/image_cache/sht43-demoboard-docker.tar ghcr.io/sensirion/sht43-demoboard-docker:main
 
         - if: steps.image-cache.outputs.cache-hit == 'true'
           run: |
-            /usr/bin/docker load -i ~/image-cache/sht43-demoboard-docker.tar
-
-        - name: Start container
-          run: |
-            /usr/bin/docker create --name sht43-demoboard-container \
-            -v "/home/runner/work/sht43-demoboard-ble-firmware/sht43-demoboard-ble-firmware":"/workdir" \
-            -v "/home/runner/work":"/__w" \
-            --workdir /__w/sht43-demoboard-ble-firmware/sht43-demoboard-ble-firmware \
-            --entrypoint "tail" ghcr.io/sensirion/sht43-demoboard-docker:main "-f" "/dev/null"
+            /usr/bin/docker load -i ~/image_cache/sht43-demoboard-docker.tar
 
         - name: Checkout
           uses: actions/checkout@v3
@@ -49,13 +41,23 @@ jobs:
           run: chmod 777 build_scripts/*.sh
         - name: Check codebase
           run: |
-            build_scripts/check.sh
+            /usr/bin/docker run --name sht43-check \
+            -v "/home/runner/work/sht43-demoboard-ble-firmware/sht43-demoboard-ble-firmware":"/workdir" \
+            -e "workdir=/workdir" \
+            --entrypoint "/workdir/build_scripts/check.sh" ghcr.io/sensirion/sht43-demoboard-docker:main
+
         - name: Build codebase
           run: |
-            build_scripts/build_source.sh
+            /usr/bin/docker run --name sht43-build \
+            -v "/home/runner/work/sht43-demoboard-ble-firmware/sht43-demoboard-ble-firmware":"/workdir" \
+            -e "workdir=/workdir" \
+            --entrypoint "/workdir/build_scripts/build_source.sh" ghcr.io/sensirion/sht43-demoboard-docker:main
         - name: Build docu
           run: |
-            build_scripts/build_docu.sh
+            /usr/bin/docker run --name sht43-build-docu \
+            -v "/home/runner/work/sht43-demoboard-ble-firmware/sht43-demoboard-ble-firmware":"/workdir" \
+            -e "workdir=/workdir" \
+            --entrypoint "/workdir/build_scripts/build_docu.sh" ghcr.io/sensirion/sht43-demoboard-docker:main
         - name: upload-build
           uses: actions/upload-artifact@v3
           with:
