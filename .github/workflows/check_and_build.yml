@@ -25,7 +25,7 @@ jobs:
           uses: actions/cache@v3
           with:
               path: ~/image-cache
-              key: image-cache-${{ runner.os }}
+              key: image-cache
         - if: steps.image-cache.outputs.cache-hit != 'true'
           run: |
             /usr/bin/docker pull ghcr.io/sensirion/sht43-demoboard-docker:main
@@ -38,11 +38,10 @@ jobs:
         - name: Start container
           run: |
             /usr/bin/docker create --name sht43-demoboard-container \
-            -v "/home/runner/work/sht43-demoboard-ble-firmware/sht43-demoboard-ble-firmware":"/workdir"\
-            -v "/home/runner/work":"/__w"\
-            --workdir /__w/sht43-demoboard-ble-firmware/sht43-demoboard-ble-firmware\
+            -v "/home/runner/work/sht43-demoboard-ble-firmware/sht43-demoboard-ble-firmware":"/workdir" \
+            -v "/home/runner/work":"/__w" \
+            --workdir /__w/sht43-demoboard-ble-firmware/sht43-demoboard-ble-firmware \
             --entrypoint "tail" ghcr.io/sensirion/sht43-demoboard-docker:main "-f" "/dev/null"
-            /usr/bin/docker start sht43-demoboard-container
 
         - name: Checkout
           uses: actions/checkout@v3
