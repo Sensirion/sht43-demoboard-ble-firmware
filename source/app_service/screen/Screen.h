@@ -209,6 +209,11 @@ void Screen_DisplayRh(bool on);
 /// @param on switch the symbol on if on is true else hide it.
 void Screen_DisplayBluetoothSymbol(bool on);
 
+/// Display the Dew Point symbol.
+///
+/// @param on switch the symbol on if on is true else hide it.
+void Screen_DisplayDewPointSymbol(bool on);
+
 /// Display sign S2 from screen specification
 ///
 /// @param on flag to indicate if the segment s2 shall be switched on or off
