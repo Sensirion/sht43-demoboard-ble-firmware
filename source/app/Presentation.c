@@ -316,6 +316,7 @@ static bool AppNormalOperationStateCb(Message_Message_t* msg) {
       } else {
         _controller.DisplayValueRow1 = DisplayDewPointOnScreen;
       }
+      DisplayNormalOperationScreen(&_controller);
     }
     _controller.uptimeSecondsSinceUserEvent = 0;
     PublishReadoutIntervalIfChanged(SHORT_READOUT_INTERVAL_S);
