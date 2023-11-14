@@ -371,6 +371,11 @@ void Screen_DisplayLowBattery(bool on) {
                 (uint32_t)on << LCD_SEG13_SHIFT);
 }
 
+void Screen_DisplayDewPointSymbol(bool on) {
+  HAL_LCD_Write(&gLcd, LCD_COM_0_0, ~(1U << LCD_SEG9_SHIFT),
+                (on << LCD_SEG9_SHIFT));
+}
+
 void Screen_UpdatePendingRequests() {
   // HAL_LCD_UpdateDisplayRequest(&gLcd) blocks until the
   // request is completed - this is not required and takes a lot

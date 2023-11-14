@@ -316,6 +316,7 @@ static bool AppNormalOperationStateCb(Message_Message_t* msg) {
       } else {
         _controller.DisplayValueRow1 = DisplayDewPointOnScreen;
       }
+      DisplayNormalOperationScreen(&_controller);
     }
     _controller.uptimeSecondsSinceUserEvent = 0;
     PublishReadoutIntervalIfChanged(SHORT_READOUT_INTERVAL_S);
@@ -450,6 +451,7 @@ static void DisplayRhOnScreen(float temperature, float relativeHumidity) {
                            Screen_DisplayMinusTop);
   Screen_DisplayPoint2(true);
   Screen_DisplayRh(true);
+  Screen_DisplayDewPointSymbol(false);
   _controller.DisplayTemperatureUnit1Cb(false);
 }
 
@@ -461,6 +463,7 @@ static void DisplayDewPointOnScreen(float temperature, float relativeHumidity) {
   Screen_DisplayFourDigits(_controller.TemperatureConversionCb(dewPoint) * 100,
                            rowTop, Screen_DisplayMinusTop);
   Screen_DisplayPoint2(true);
+  Screen_DisplayDewPointSymbol(true);
   _controller.DisplayTemperatureUnit1Cb(true);
   Screen_DisplayRh(false);
 }
