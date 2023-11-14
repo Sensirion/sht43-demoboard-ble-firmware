@@ -431,6 +431,8 @@ static bool InitEnumeratorStatus(uint8_t page_nr,
                                  uint16_t startIndex) {
   EnumeratorStatus_t* status = &itemStore->enumeratorStatus;
   status->currentIndex = startIndex;  // current read index on this page
+  // read the page header to check if the page is valid and initialize
+  // the page id from it!
   if (!Flash_Read(PAGE_ADDR(page_nr), (uint8_t*)&status->enumeratingPage,
                   sizeof(PageHeader_t))) {
     return false;
@@ -440,7 +442,7 @@ static bool InitEnumeratorStatus(uint8_t page_nr,
   }
   // we are reading how many items are on the page that we enumerate
   if (page_nr == itemStore->nextWritePageInfo.pageId) {
-    // this is the page where new items are inserted
+    // this is the actual page where new items are inserted!
     status->itemsOnPage = itemStore->currentPageNrOfItems;
   } else {
     // this is a full page
@@ -487,7 +489,8 @@ static bool FindEnumeratorStartPosition(ItemStoreInfo_t* itemStore,
   if (skipping > 0) {
     return false;
   }
-  *startPage = itemStore->enumeratorStatus.enumeratingPage.beginTag.pageId;
+
+  *startPage = page_nr;
   *startPosition = itemsOnPage + skipping;
   return true;
 }
