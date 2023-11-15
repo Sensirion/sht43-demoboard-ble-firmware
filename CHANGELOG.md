@@ -3,6 +3,24 @@
 This changelog lists the most important changes for each release version. For
 the full log, please refer to the git commit history.
 
+## v0.5.0 (2023-11-15)
+
+### Added
+
+* Toggle display between RH and dew point
+
+### Fixed
+
+* Fix bug that leads to hard-fault when trying to enumerate the items in the
+  item store immediately after all items where deleted.
+
+### Changed
+
+* Delete measurement samples when power is removed in order to keep time series
+  consistent.
+* Immediate update of screen after button press.
+* Format changelog according to [`Keep a Changelog`](https://keepachangelog.com/en/1.0.0/)
+
 ## v0.4.0 (05-10-2023)
 **General**
 
