@@ -357,11 +357,11 @@ static void BeginReadSamples(bool enumeratorReady) {
       .head.parameter1 = SERVICE_REQUEST_MESSAGE_ID_SET_REQUESTED_SAMPLES,
       .parameter.responsePtr = 0};
 
-  if (!enumeratorReady) {
-    ErrorHandler_RecoverableError(ERROR_CODE_ITEM_STORE);
-    return;
+  // in case of an empty log we play the same sequence but with no samples
+  uint16_t availableSamples = 0;
+  if (enumeratorReady) {
+    availableSamples = ItemStore_Count(&_sampleEnumerator) * 2;
   }
-  uint16_t availableSamples = ItemStore_Count(&_sampleEnumerator) * 2;
   ItemStore_EndEnumerate(&_sampleEnumerator);
   _sampleRequest.metadata.numberOfSamples =
       MIN(availableSamples, _sampleRequest.requestedNrOfSamples);
