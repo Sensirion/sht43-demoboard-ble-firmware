@@ -75,9 +75,6 @@
 #include "utility/scheduler/MessageId.h"
 #include "utility/scheduler/Scheduler.h"
 
-/// Flag to check if the system comes from a POR
-static bool powerOnReset;
-
 /// Type definition for the message broker initialization
 typedef struct _tMessageBus {
   MessageBroker_Broker_t broker;  ///< the message broker to be initialized
@@ -119,7 +116,6 @@ static MessageBus_t _bleMessageBroker = {
     .priority = SCHEDULER_PRIO_0};
 
 void System_Init(void) {
-  powerOnReset = Clock_ReadAndClearPorActiveFlag();
   // Setup the message passing infrastructure.
   // This is the first thing to do since errors are also propagated as
   // messages
@@ -172,8 +168,7 @@ static void RunSystem(void) {
 
   Message_Message_t peripheralInitialized = {
       .header.category = MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE,
-      .header.id = MESSAGE_ID_PERIPHERALS_INITIALIZED,
-      .header.parameter1 = powerOnReset};
+      .header.id = MESSAGE_ID_PERIPHERALS_INITIALIZED};
   Message_PublishAppMessage(&peripheralInitialized);
 
   while (1) {
