@@ -53,13 +53,13 @@
 #include "app_service/power_manager/BatteryMonitor.h"
 #include "app_service/sensor/Sht4x.h"
 #include "app_service/user_button/Button.h"
+#include "hal/Clock.h"
 #include "shci.h"
 #include "stm32_lpm.h"
 #include "stm32_seq.h"
 #include "svc/Inc/svc_ctl.h"
 #include "utility/AppDefines.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
 #include "utility/scheduler/MessageId.h"
 #include "utility/scheduler/Scheduler.h"
 
@@ -228,9 +228,11 @@ void BleContext_StartBluetoothApp() {
   gBleApplicationContext.deviceConnectionStatus = BLE_INTERFACE_IDLE;
   gBleApplicationContext.bleApplicationContextLegacy.connectionHandle = 0xFFFF;
   _bleAppListener.currentMessageHandlerCb = BleDefaultStateCb;
+  bool powerOnReset = Clock_ReadAndClearPorActiveFlag();
   Message_Message_t msg = {
       .header.category = MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE,
-      .header.id = MESSAGE_ID_BLE_SUBSYSTEM_READY};
+      .header.id = MESSAGE_ID_BLE_SUBSYSTEM_READY,
+      .header.parameter1 = powerOnReset};
   Message_PublishAppMessage(&msg);
 }
 
@@ -429,8 +431,10 @@ static bool BleDefaultStateCb(Message_Message_t* message) {
       gCompleteAdvData.humidityTicks =
           sensorMsg->data.measurement.humidityTicks;
       /// this does not change the advertisement mode
+
       BleGap_AdvertiseRequest(&gBleApplicationContext,
                               gBleApplicationContext.currentAdvertisementMode);
+
       TemperatureService_SetTemperature(Sht4x_TicksToTemperatureCelsius(
           sensorMsg->data.measurement.temperatureTicks));
       HumidityService_SetHumidity(
@@ -572,6 +576,7 @@ static bool ForwardToBleAppCb(Message_Message_t* message) {
       return true;
     }
   }
+
   return false;
 }
 

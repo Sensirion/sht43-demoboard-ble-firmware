@@ -74,7 +74,7 @@ add_link_options(
 # Build type
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "release")
     message(STATUS "Optimization for release build")
-    add_compile_options(-O2)
+    add_compile_options(-O0)
 else ()
     message(STATUS "No optimization for debug build")
     add_compile_options(-O0 -g)
