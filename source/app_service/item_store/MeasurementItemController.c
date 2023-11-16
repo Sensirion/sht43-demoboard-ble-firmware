@@ -175,7 +175,7 @@ static bool ItemStoreIdleState(Message_Message_t* msg) {
     return true;
   }
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE) {
-    if (msg->header.id == MESSAGE_ID_PERIPHERALS_INITIALIZED) {
+    if (msg->header.id == MESSAGE_ID_BLE_SUBSYSTEM_READY) {
       if (msg->header.parameter1 == 1) {
         // Only delete the items in case of a power on reset
         ItemStore_DeleteAllItems(ITEM_DEF_MEASUREMENT_SAMPLE);

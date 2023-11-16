@@ -401,8 +401,10 @@ void BeginEnumerate(ItemStore_ItemDef_t item,
 
   enumeratorStatus->itemsToSkip = enumerator->startIndex;
   if (enumerator->startIndex < 0) {
-    enumeratorStatus->itemsToSkip =
+    // items to skip is strictly positive!
+    int32_t itemsToSkip =
         enumeratorStatus->totalNrOfItems + enumerator->startIndex;
+    enumeratorStatus->itemsToSkip = itemsToSkip > 0 ? itemsToSkip : 0;
   }
   uint16_t startIndex = 0;
   uint8_t startPage = 0;

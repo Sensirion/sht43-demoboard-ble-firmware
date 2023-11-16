@@ -3,6 +3,14 @@
 This changelog lists the most important changes for each release version. For
 the full log, please refer to the git commit history.
 
+## v0.5.1 (2023-11-16)
+
+### Fixed
+
+* Fix bug that prevented release build from booting.
+* Fix wrong initialization of itemsToSkip when no items are in an item store
+  and we want to enumerate in reversed order.
+
 ## v0.5.0 (2023-11-15)
 
 ### Added
