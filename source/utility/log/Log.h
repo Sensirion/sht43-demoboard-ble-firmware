@@ -44,7 +44,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(STATIC_CODE_ANALYSIS)
 /// write a debug message to trace output
 #define LOG_DEBUG(message, ...)                                            \
   snprintf(Trace_GetMessageFormatBuffer(), TRACE_FMT_BUFFER_SIZE, message, \
@@ -52,10 +52,22 @@
   Trace_Message("Debug: %s\n", Trace_GetMessageFormatBuffer())
 
 #else
-/// empty definition of log message
+/// LOG_DEBUG is eliminated in release builds
 #define LOG_DEBUG(message, ...)
 
 #endif
+
+#if defined(STATIC_CODE_ANALYSIS)
+
+/// clang tidy is not aware of the proper compiler architecture and will
+/// produce warnings
+#define LOG_ERROR(message, ...) Trace_Message(message, __VA_ARGS__)
+
+/// clang tidy is not aware of the proper compiler architecture and will
+/// produce warnings
+#define LOG_INFO(message, ...) Trace_Message(message, __VA_ARGS__)
+
+#else  // no static code analysis
 
 /// write a error message to trace output
 #define LOG_ERROR(message, ...)                                            \
@@ -68,5 +80,6 @@
   snprintf(Trace_GetMessageFormatBuffer(), TRACE_FMT_BUFFER_SIZE, message, \
            __VA_ARGS__);                                                   \
   Trace_Message("Info: %s\n", Trace_GetMessageFormatBuffer())
+#endif  // STATIC_CODE_ANALYSIS
 
 #endif  // LOG_H
