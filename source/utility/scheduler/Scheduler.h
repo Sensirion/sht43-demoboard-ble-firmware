@@ -60,12 +60,12 @@ typedef enum {
 } Scheduler_NoHciCmdTaskId_t;
 
 /// This enum describes all the available priorities
-/// SCHEDULER_PRIO_0 is the highest priority
+/// SCHEDULER_PRIO_0 is the highest priority;
+/// Only three priorities are allowed!
 typedef enum {
   SCHEDULER_PRIO_0,
   SCHEDULER_PRIO_1,
   SCHEDULER_PRIO_2,
-  SCHEDULER_PRIO_3,
 } Scheduler_SchedulerPriority_t;
 
 /// This enum describes the list sequencer events

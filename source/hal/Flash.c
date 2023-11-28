@@ -115,7 +115,7 @@ void Flash_Init() {
   // initialize and register flash FSM
   MessageBroker_Create(&_flashMessageDispatcher, _flash_task_messages,
                        NR_OF_FLASH_MESSAGES,
-                       SCHEDULER_TASK_HANDLE_FLASH_OPERATION, SCHEDULER_PRIO_3);
+                       SCHEDULER_TASK_HANDLE_FLASH_OPERATION, SCHEDULER_PRIO_2);
   MessageBroker_RegisterListener(&_flashMessageDispatcher,
                                  &_flashMessageHandler);
   UTIL_SEQ_RegTask(_flashMessageDispatcher.taskBitmap, UTIL_SEQ_RFU, FlashTask);
