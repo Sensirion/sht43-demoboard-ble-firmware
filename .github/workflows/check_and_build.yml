@@ -1,7 +1,8 @@
 
-name: 'check and build sht43 demoboard firmware'
+name: 'Check and build sht43 demoboard firmware'
 
 on:
+    workflow_call:
     workflow_dispatch:
     push:
     pull_request:
@@ -45,6 +46,7 @@ jobs:
               uses: actions/upload-pages-artifact@v1
               with:
                 path: documentation/doxygen/output/html
+
     deploy_pages:
       # Specify runner + deployment step
       runs-on: ubuntu-22.04
