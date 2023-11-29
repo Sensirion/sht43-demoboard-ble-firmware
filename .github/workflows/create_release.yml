@@ -2,11 +2,11 @@
 name: 'Create a new release'
 on:
   push:
-    branches:
-      - release-action
+    tags:
+      - '*'
 jobs:
     build_release:
-      uses: Sensirion/sht43-demoboard-ble-firmware/.github/workflows/check_and_build.yml@release-action
+      uses: Sensirion/sht43-demoboard-ble-firmware/.github/workflows/check_and_build.yml@main
       secrets: inherit
     create_release:
       runs-on: ubuntu-22.04
@@ -26,6 +26,9 @@ jobs:
           uses: ncipollo/release-action@v1
           with:
             name: "Release ${{github.ref_name}}"
-            artifacts: ${{github.workspace}}/artifacts/release/*.*
+            artifacts: |
+              ${{github.workspace}}/artifacts/release/*.hex,
+              ${{github.workspace}}/artifacts/release/*.bin,
+              ${{github.workspace}}/artifacts/release/*.elf
             bodyFile: ${{github.workspace}}/CHANGELOG.md
             tag: ${{github.ref_name}}
