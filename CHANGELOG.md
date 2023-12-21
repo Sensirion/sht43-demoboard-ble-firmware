@@ -1,7 +1,25 @@
-# SHT43 DemoBoard Firmware
+# Changelog
 
 This changelog lists the most important changes for each release version. For
 the full log, please refer to the git commit history.
+
+## Unreleased
+
+## v0.5.2 (2023-12-21)
+
+### Fixed
+
+* Get rid of clang-tidy warnings
+* Fix compile time configuration for sequencer priorities
+
+### Changed
+
+* Rework readme and documentation intro page
+* Use again compiler optimization -O2 in release build
+
+### Added
+
+* Checklist for release and pull requests
 
 ## v0.5.1 (2023-11-16)
 
