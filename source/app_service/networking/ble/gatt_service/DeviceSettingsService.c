@@ -182,7 +182,7 @@ static void AddVersionCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = 0x81FF,
       .maxValueLength = 1,
       .characteristicPropertyFlags = CHAR_PROP_READ,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_DONT_NOTIFY_EVENTS,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};
@@ -205,7 +205,7 @@ static void AddIsLogEnabledCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = 0x81FE,
       .maxValueLength = 1,
       .characteristicPropertyFlags = CHAR_PROP_READ | CHAR_PROP_WRITE,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_NOTIFY_ATTRIBUTE_WRITE,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};
@@ -229,7 +229,7 @@ static void AddIsAdvertiseDataEnabledCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = 0x8130,
       .maxValueLength = 1,
       .characteristicPropertyFlags = CHAR_PROP_READ | CHAR_PROP_WRITE,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_NOTIFY_ATTRIBUTE_WRITE,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};
@@ -256,7 +256,7 @@ static void AddAlternativeDeviceNameCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = 0x8120,
       .maxValueLength = 31,
       .characteristicPropertyFlags = CHAR_PROP_READ | CHAR_PROP_WRITE,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_NOTIFY_ATTRIBUTE_WRITE,
       .encryptionKeySize = 10,
       .isVariableLengthValue = true};

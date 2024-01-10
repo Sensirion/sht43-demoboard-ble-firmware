@@ -113,7 +113,7 @@ static void AddRebootCharacteristic(struct _tService* service) {
                                   0x00, 0x00},
       .maxValueLength = 3,
       .characteristicPropertyFlags = CHAR_PROP_WRITE_WITHOUT_RESP,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_NOTIFY_ATTRIBUTE_WRITE,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};

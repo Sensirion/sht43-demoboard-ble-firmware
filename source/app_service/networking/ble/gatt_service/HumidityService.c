@@ -88,7 +88,7 @@ static void AddHumidityCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = 0x1235,
       .maxValueLength = 4,
       .characteristicPropertyFlags = CHAR_PROP_READ | CHAR_PROP_NOTIFY,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_DONT_NOTIFY_EVENTS,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};

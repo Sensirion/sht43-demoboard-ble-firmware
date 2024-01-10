@@ -213,7 +213,7 @@ static void AddLoggingIntervalCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = 0x8001,
       .maxValueLength = 4,
       .characteristicPropertyFlags = CHAR_PROP_READ | CHAR_PROP_WRITE,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_NOTIFY_ATTRIBUTE_WRITE |
                     GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
       .encryptionKeySize = 10,
@@ -239,7 +239,7 @@ static void AddAvailableSamplesCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = 0x8002,
       .maxValueLength = 4,
       .characteristicPropertyFlags = CHAR_PROP_READ,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};
@@ -264,7 +264,7 @@ static void AddRequestSamplesCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = 0x8003,
       .maxValueLength = 4,
       .characteristicPropertyFlags = CHAR_PROP_READ | CHAR_PROP_WRITE,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_NOTIFY_ATTRIBUTE_WRITE,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};
@@ -289,7 +289,7 @@ static void AddSampleDataCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = 0x8004,
       .maxValueLength = TX_FRAME_SIZE,
       .characteristicPropertyFlags = CHAR_PROP_NOTIFY,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_DONT_NOTIFY_EVENTS,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};

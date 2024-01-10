@@ -78,7 +78,7 @@ static void AddBatteryLevelCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = BATTERY_LEVEL_CHAR_UUID,
       .maxValueLength = 1,
       .characteristicPropertyFlags = CHAR_PROP_READ,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_DONT_NOTIFY_EVENTS,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};
