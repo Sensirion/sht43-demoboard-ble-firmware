@@ -103,7 +103,7 @@ static void AddModelNumberCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = MODEL_NUMBER_UUID,
       .maxValueLength = 10,
       .characteristicPropertyFlags = CHAR_PROP_READ,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_DONT_NOTIFY_EVENTS,
       .encryptionKeySize = 10,
       .isVariableLengthValue = true};
@@ -126,7 +126,7 @@ static void AddManufacturerNameCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = MANUFACTURER_NAME_UUID,
       .maxValueLength = 10,
       .characteristicPropertyFlags = CHAR_PROP_READ,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_DONT_NOTIFY_EVENTS,
       .encryptionKeySize = 10,
       .isVariableLengthValue = true};
@@ -147,7 +147,7 @@ static void AddFirmwareVersionCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = FIRMWARE_REVISION_UUID,
       .maxValueLength = sizeof(buffer),
       .characteristicPropertyFlags = CHAR_PROP_READ,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_DONT_NOTIFY_EVENTS,
       .encryptionKeySize = 10,
       .isVariableLengthValue = true};
@@ -167,7 +167,7 @@ static void AddSerialNumberCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = SERIAL_NUMBER_UUID,
       .maxValueLength = sizeof(buffer),
       .characteristicPropertyFlags = CHAR_PROP_READ,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_DONT_NOTIFY_EVENTS,
       .encryptionKeySize = 10,
       .isVariableLengthValue = true};
@@ -188,7 +188,7 @@ static void AddSystemIdCharacteristic(struct _tService* service) {
       .uuid.uuid.Char_UUID_16 = SYSTEM_ID_UUID,
       .maxValueLength = sizeof(buffer),
       .characteristicPropertyFlags = CHAR_PROP_READ,
-      .securityFlags = ATTR_PERMISSION_NONE,
+      .securityFlags = SECURE_ACCESS,
       .eventFlags = GATT_DONT_NOTIFY_EVENTS,
       .encryptionKeySize = 10,
       .isVariableLengthValue = false};

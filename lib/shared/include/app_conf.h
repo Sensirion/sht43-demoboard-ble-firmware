@@ -77,9 +77,9 @@
 /**
  * Define IO Authentication
  */
-#define CFG_BONDING_MODE                 (0)
+#define CFG_BONDING_MODE                 (1)
 #define CFG_FIXED_PIN                    (111111)
-#define CFG_USED_FIXED_PIN               (0)
+#define CFG_USED_FIXED_PIN               (0)  // use a fixed pin
 #define CFG_ENCRYPTION_KEY_SIZE_MAX      (16)
 #define CFG_ENCRYPTION_KEY_SIZE_MIN      (8)
 
@@ -92,7 +92,7 @@
 #define CFG_IO_CAPABILITY_NO_INPUT_NO_OUTPUT  (0x03)
 #define CFG_IO_CAPABILITY_KEYBOARD_DISPLAY    (0x04)
 
-#define CFG_IO_CAPABILITY                     CFG_IO_CAPABILITY_DISPLAY_YES_NO
+#define CFG_IO_CAPABILITY                     CFG_IO_CAPABILITY_KEYBOARD_DISPLAY
 
 /**
  * Define MITM modes
@@ -109,7 +109,7 @@
 #define CFG_SECURE_OPTIONAL                   (0x01)
 #define CFG_SECURE_MANDATORY                  (0x02)
 
-#define CFG_SC_SUPPORT                        CFG_SECURE_OPTIONAL
+#define CFG_SC_SUPPORT                        CFG_SECURE_MANDATORY
 
 /**
  * Define Keypress Notification Support
@@ -117,7 +117,7 @@
 #define CFG_KEYPRESS_NOT_SUPPORTED            (0x00)
 #define CFG_KEYPRESS_SUPPORTED                (0x01)
 
-#define CFG_KEYPRESS_NOTIFICATION_SUPPORT     CFG_KEYPRESS_NOT_SUPPORTED
+#define CFG_KEYPRESS_NOTIFICATION_SUPPORT     CFG_KEYPRESS_SUPPORTED
 
 /**
  * Numeric Comparison Answers

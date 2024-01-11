@@ -251,8 +251,7 @@ static void HciGapGattInit(BleTypes_ApplicationContext_t* appContext) {
   BleGap_Init(appContext);
 
   // Initialize Default PHY
-  ret = hci_le_set_default_phy(ALL_PHYS_PREFERENCE, TX_2M_PREFERRED,
-                               RX_2M_PREFERRED);
+  ret = hci_le_set_default_phy(ALL_PHYS_PREFERENCE, TX_1M, RX_1M);
   LOG_DEBUG_CALLSTATUS("set_default_pyh()", ret);
 
   Trace_Message("HCI GAP init end\n");

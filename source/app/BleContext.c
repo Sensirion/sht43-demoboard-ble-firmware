@@ -119,7 +119,7 @@ static BleTypes_RestrictedAdvertisementData_t gRestrictedAdvData = {
     .adTypeSize = 2,
     .adTypeFlag = AD_TYPE_FLAGS,
     .adTypeValue = 0x06,
-    .adTypeManufacturerSize = 4,
+    .adTypeManufacturerSize = 5,
     .adTypeManufacturerFlag = AD_TYPE_MANUFACTURER_SPECIFIC_DATA,
     .companyIdentifier = BLE_TYPES_SENSIRION_VENDOR_ID,
     .sAdvT = 0xFF,
@@ -363,6 +363,15 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
 
         case ACI_GAP_NUMERIC_COMPARISON_VALUE_VSEVT_CODE:
           LOG_DEBUG_CASE(ACI_GAP_NUMERIC_COMPARISON_VALUE_VSEVT_CODE);
+          // TODO: here we get notified from the pin entry of the user.
+          // We will need to display the code and wait for a reaction
+          // before returning yes!
+          static uint32_t code = 0;
+          uint32_t temp_code = 0;
+          memccpy(&temp_code, &bleCoreEvent->data[2], 4, sizeof(temp_code));
+          if (temp_code != code) {
+            code = temp_code;
+          }
 
           ret = aci_gap_numeric_comparison_value_confirm_yesno(
               gBleApplicationContext.bleApplicationContextLegacy

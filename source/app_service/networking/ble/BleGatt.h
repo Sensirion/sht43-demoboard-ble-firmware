@@ -36,6 +36,12 @@
 #define BLE_GATT_H
 
 #include "app_service/networking/ble/BleTypes.h"
+#include "ble_defs.h"
+
+/// Define how a characteristic is accessed
+#define SECURE_ACCESS                                         \
+  (ATTR_PERMISSION_AUTHEN_READ | ATTR_PERMISSION_ENCRY_READ | \
+   ATTR_PERMISSION_AUTHEN_WRITE | ATTR_PERMISSION_ENCRY_WRITE)
 
 /// Defines the messages that are coming from a BLE service to the application.
 ///
