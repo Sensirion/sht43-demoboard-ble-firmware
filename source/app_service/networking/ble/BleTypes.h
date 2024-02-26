@@ -57,6 +57,12 @@
 /// Name of the local name within the advertisement data
 #define BLE_TYPES_LOCAL_NAME_LENGTH 8
 
+/// Restricted manufacturer data length
+#define SHORT_MANUFACTURER_DATA_LENGTH 7
+
+/// Full manufacturer data length; include 4 bytes of measurement data
+#define LONG_MANUFACTURER_DATA_LENGTH 11
+
 /// security parameters structure
 typedef struct _tSecurityParams {
   /// IO capability of the device
@@ -117,22 +123,6 @@ typedef union _tBleTypes_AdvertisementMode {
   uint16_t compare;              ///< for easy comparison of two modes
 } BleTypes_AdvertisementMode_t;
 
-/// Defines the advertisement data without sample data
-typedef struct __attribute__((__packed__)) {
-  uint8_t adTypeSize;              ///< size type
-  uint8_t adTypeFlag;              ///< flag type
-  uint8_t adTypeValue;             ///< value type
-  uint8_t adTypeManufacturerSize;  ///< size manufacturer
-  uint8_t adTypeManufacturerFlag;  ///< flag manufacturer
-  uint16_t companyIdentifier;      ///< value manufacturer
-  uint8_t sAdvT;                   ///< advertisement type
-  uint8_t sampleType;              ///< type of advertisement
-  uint8_t adTypeNameSize;          ///< size device name
-  uint8_t adTypeNameFlag;          ///< type device name
-  /// value device name
-  uint8_t name[BLE_TYPES_LOCAL_NAME_LENGTH];
-} BleTypes_RestrictedAdvertisementData_t;
-
 /// Defines the complete advertisement data of the SHT4x Demo Board
 /// including temperature and humidity measurement values.
 typedef struct __attribute__((__packed__)) {
@@ -144,7 +134,8 @@ typedef struct __attribute__((__packed__)) {
   uint16_t companyIdentifier;      ///< value manufacturer
   uint8_t sAdvT;                   ///< advertisement type
   uint8_t sampleType;              ///< format tag of subsequent data
-  uint16_t deviceId;               ///< device id         (custom data)
+  uint8_t deviceIdMsb;             ///< device id lsb     (custom data)
+  uint8_t deviceIdLsb;             ///< device id msb     (custom data)
   uint16_t temperatureTicks;       ///< temperature ticks (custom data)
   uint16_t humidityTicks;          ///< humidity ticks    (custom data)
   uint8_t adTypeNameSize;          ///< size device name
