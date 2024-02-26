@@ -101,29 +101,15 @@ static BleTypes_CompleteAdvertisementData_t gCompleteAdvData = {
     .adTypeSize = 2,
     .adTypeFlag = AD_TYPE_FLAGS,
     .adTypeValue = 0x06,
-    .adTypeManufacturerSize = 11,
+    .adTypeManufacturerSize = LONG_MANUFACTURER_DATA_LENGTH,
     .adTypeManufacturerFlag = AD_TYPE_MANUFACTURER_SPECIFIC_DATA,
     .companyIdentifier = BLE_TYPES_SENSIRION_VENDOR_ID,
     .sAdvT = 0x00,
     .sampleType = 0x06,
-    .deviceId = 0xFFFF,
+    .deviceIdLsb = 0xFF,
+    .deviceIdMsb = 0xFF,
     .temperatureTicks = 0xFFFF,
     .humidityTicks = 0xFFFF,
-    .adTypeNameSize = 9,
-    .adTypeNameFlag = AD_TYPE_COMPLETE_LOCAL_NAME,
-    .name = "",  // will be initialized later on
-};
-
-/// Restricted advertisement data.
-static BleTypes_RestrictedAdvertisementData_t gRestrictedAdvData = {
-    .adTypeSize = 2,
-    .adTypeFlag = AD_TYPE_FLAGS,
-    .adTypeValue = 0x06,
-    .adTypeManufacturerSize = 5,
-    .adTypeManufacturerFlag = AD_TYPE_MANUFACTURER_SPECIFIC_DATA,
-    .companyIdentifier = BLE_TYPES_SENSIRION_VENDOR_ID,
-    .sAdvT = 0xFF,
-    .sampleType = 0,
     .adTypeNameSize = 9,
     .adTypeNameFlag = AD_TYPE_COMPLETE_LOCAL_NAME,
     .name = "",  // will be initialized later on
@@ -213,14 +199,14 @@ MessageListener_Listener_t* BleContext_BridgeInstance() {
 }
 
 void BleContext_StartBluetoothApp() {
-  gCompleteAdvData.deviceId = ProductionParameters_GetUniqueDeviceId() & 0xFFFF;
+  uint16_t deviceId = ProductionParameters_GetUniqueDeviceId() & 0xFFFF;
+  gCompleteAdvData.deviceIdLsb = deviceId & 0xFF;
+  gCompleteAdvData.deviceIdMsb = (deviceId >> 8) & 0xFF;
+
   // initialize device name in the complete advertisement data structure
   memcpy(gCompleteAdvData.name, (uint8_t*)ProductionParameters_GetDeviceName(),
          sizeof(gCompleteAdvData.name));
-  // initialize device name in the restricted advertisement data structure
-  memcpy(gRestrictedAdvData.name,
-         (uint8_t*)ProductionParameters_GetDeviceName(),
-         sizeof(gRestrictedAdvData.name));
+
   // this is just a pointer to static memory
   gBleApplicationContext.localName =
       (uint8_t*)ProductionParameters_GetDeviceName();
@@ -714,11 +700,12 @@ static void TrySendSampleFrames() {
 }
 
 static void UpdateAdvertiseSamplesEnable(bool isAdvertiseSamplesEnabled) {
-  gBleApplicationContext.advertisementData = &gRestrictedAdvData;
-  gBleApplicationContext.advertisementDataSize = sizeof(gRestrictedAdvData);
+  // it is sufficient to just reduce the manufacturer data length
+  // in order to hide the values.
+  gCompleteAdvData.adTypeManufacturerSize = SHORT_MANUFACTURER_DATA_LENGTH;
+
   if (isAdvertiseSamplesEnabled) {
-    gBleApplicationContext.advertisementData = &gCompleteAdvData;
-    gBleApplicationContext.advertisementDataSize = sizeof(gCompleteAdvData);
+    gCompleteAdvData.adTypeManufacturerSize = LONG_MANUFACTURER_DATA_LENGTH;
   }
   DeviceSettingsService_UpdateIsAdvertiseDataEnabled(isAdvertiseSamplesEnabled);
 }
