@@ -35,6 +35,7 @@
 #include "BatteryMonitor.h"
 
 #include "hal/Adc.h"
+#include "utility/AppDefines.h"
 #include "utility/scheduler/MessageId.h"
 
 #include <math.h>
@@ -50,7 +51,7 @@
 #define BATTERY_LEVEL_SLOPE_2 0.08
 
 /// offset of the battery level curve in the range 25% - 5%
-#define BATTERY_LEVEL_OFFSET_2 -195
+#define BATTERY_LEVEL_OFFSET_2 -190
 
 /// Constants to define the threshold when the
 /// application state changes.
@@ -78,6 +79,29 @@ typedef struct tBatteryMonitor {
   BatteryMonitor_AppState_t actualApplicationState;  ///< actual application
                                                      ///< state
 } BatteryMonitor_t;
+
+/// defines the depth of the measurement history
+#define HISTORY_DEPTH 4
+
+/// A buffer to keep the last `HISTORY_DEPTH` measurements
+uint32_t _batteryVoltageMeasurements[HISTORY_DEPTH] = {0};
+
+/// insert index for batteryLevelMeasurements buffer
+uint8_t _bufferIndex = 0;
+
+/// flag to tell if the measurement buffer was filled once
+uint8_t _historyComplete = false;
+
+/// A buffer to keep the last `HISTORY_DEPTH` measurements is sorted order
+uint32_t _batteryVoltageMeasurementsSorted[HISTORY_DEPTH];
+
+/// Compute the sorted measurement values and store them in
+/// the _batteryVoltageMeasurementsSorted.
+static void CopyAndSortMeasurements();
+
+/// Get the median of the measured voltages in the measurement history
+/// @return the median voltage value
+static uint32_t GetMeasuredVoltagesMedianMv();
 
 /// Compute the remaining capacity of the battery
 /// @param batteryLevelMv battery level in millivolt
@@ -112,7 +136,6 @@ static BatteryMonitor_AppState_t VbatToApplicationState(uint32_t vbatMv);
 BatteryMonitor_t _batteryMonitorInstance = {
     .listener = {.currentMessageHandlerCb = MessageHandlerCb,
                  .receiveMask = MESSAGE_BROKER_CATEGORY_TIME_INFORMATION},
-    .batteryLevelMV = 0,
     .remainingCapacity = 0,
     .actualApplicationState = BATTERY_MONITOR_APP_STATE_UNDEFINED};
 
@@ -129,24 +152,35 @@ MessageListener_Listener_t* BatteryMonitor_Instance() {
   return (MessageListener_Listener_t*)&_batteryMonitorInstance;
 }
 
-uint32_t BatteryMonitor_GetBatteryVoltage() {
-  return _batteryMonitorInstance.batteryLevelMV;
-}
-
 static void InitializeVbatCb(uint32_t vbatMv) {
-  // at this point we initialize only vbat. The battery state
-  // is updated only on the first timer tick and it will be published to
-  // all listeners as it is a state change
-  _batteryMonitorInstance.batteryLevelMV = vbatMv;
+  // Initializes the filter and insert the first measurement.
+  _bufferIndex = 0;
+  _historyComplete = false;
+  _batteryVoltageMeasurements[_bufferIndex++] = vbatMv;
 }
 
 static void UpdateVbatCb(uint32_t vbatMv) {
-  _batteryMonitorInstance.batteryLevelMV = vbatMv;
-  uint8_t remainingCapacity = ComputeRemainingCapacity(vbatMv);
+  _batteryVoltageMeasurements[_bufferIndex++] = vbatMv;
+  if (_bufferIndex == HISTORY_DEPTH) {
+    _bufferIndex = 0;
+    _historyComplete = true;
+  }
+  // as long as we do not have enough measurements, we do not update
+  // the application state
+  if (!_historyComplete) {
+    return;
+  }
+
+  _batteryMonitorInstance.batteryLevelMV = GetMeasuredVoltagesMedianMv();
+
   BatteryMonitor_AppState_t state =
       _batteryMonitorInstance.actualApplicationState;
   _batteryMonitorInstance.actualApplicationState =
-      VbatToApplicationState(vbatMv);
+      VbatToApplicationState(_batteryMonitorInstance.batteryLevelMV);
+
+  uint8_t remainingCapacity =
+      ComputeRemainingCapacity(_batteryMonitorInstance.batteryLevelMV);
+
   if (state != _batteryMonitorInstance.actualApplicationState) {
     BatteryMonitor_Message_t msg = {
         .currentState = _batteryMonitorInstance.actualApplicationState,
@@ -190,10 +224,43 @@ static uint8_t ComputeRemainingCapacity(uint32_t batteryLevelMv) {
     return (uint8_t)fminf(100, round(batteryLevelMv * BATTERY_LEVEL_SLOPE_1 +
                                      BATTERY_LEVEL_OFFSET_1));
   }
-  if (_batteryMonitorInstance.actualApplicationState ==
-      BATTERY_MONITOR_APP_STATE_REDUCED_OPERATION) {
-    return (uint8_t)fminf(25, round(batteryLevelMv * BATTERY_LEVEL_SLOPE_2 +
-                                    BATTERY_LEVEL_OFFSET_2));
+
+  return (uint8_t)fmax(0,
+                       fminf(25, round(batteryLevelMv * BATTERY_LEVEL_SLOPE_2 +
+                                       BATTERY_LEVEL_OFFSET_2)));
+}
+
+void CopyAndSortMeasurements() {
+  for (uint8_t i = 0; i < HISTORY_DEPTH; i++) {
+    _batteryVoltageMeasurementsSorted[i] = _batteryVoltageMeasurements[i];
   }
-  return 0;  // this is not of interest anymore
+  // as we have a very short array a bubble sort is good enough
+  for (uint8_t i = 0; i < HISTORY_DEPTH; i++) {
+    for (uint8_t j = 0; j < HISTORY_DEPTH; j++) {
+      if (_batteryVoltageMeasurementsSorted[i] <
+          _batteryVoltageMeasurementsSorted[j]) {
+        // swap entries
+        uint32_t tmp = _batteryVoltageMeasurementsSorted[i];
+        _batteryVoltageMeasurementsSorted[i] =
+            _batteryVoltageMeasurementsSorted[j];
+        _batteryVoltageMeasurementsSorted[j] = tmp;
+      }
+    }
+  }
+}
+
+uint32_t GetMeasuredVoltagesMedianMv() {
+  // computing a median consist of
+
+  // - sorting
+  CopyAndSortMeasurements();
+
+  // - determine the element(s) in the middle
+  uint8_t index1 = HISTORY_DEPTH / 2;
+  uint8_t index2 = (HISTORY_DEPTH % 2) == 0 ? index1 + 1 : index1;
+
+  // - compute the mean of the middle elements
+  return (_batteryVoltageMeasurementsSorted[index1] +
+          _batteryVoltageMeasurementsSorted[index2]) /
+         2;
 }
