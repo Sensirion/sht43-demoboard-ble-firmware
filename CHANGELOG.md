@@ -5,6 +5,18 @@ the full log, please refer to the git commit history.
 
 ## Unreleased
 
+### Fixed
+
+* Update advertisement data
+
+### Changed
+
+* Introduce filter for battery level measurements.
+
+### Removed
+
+* Function getBatteryVoltage() not used and removed.
+
 ## v0.5.2 (2023-12-21)
 
 ### Fixed

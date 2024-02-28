@@ -228,6 +228,7 @@ Presentation_Controller_t _controller = {
                  .currentMessageHandlerCb = AppBootStateCb},
     .TemperatureConversionCb = TemperatureToCelsius,
     .bleOn = true,
+    .batteryState = BATTERY_MONITOR_APP_STATE_NO_RESTRICTION,
     .DisplayValueRow1 = DisplayRhOnScreen,
     .DisplayTemperatureUnit1Cb = Screen_DisplayCelsius1,
     .DisplayTemperatureUnit2Cb = Screen_DisplayCelsius2};

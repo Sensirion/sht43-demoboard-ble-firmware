@@ -72,10 +72,4 @@ typedef enum {
 /// @return the instantiated BatteryMonitor instance;
 MessageListener_Listener_t* BatteryMonitor_Instance();
 
-/// Get the battery voltage synchronously.
-/// @note: This function will not trigger a new measurement but just return a
-/// previously read value.
-/// @return the last measured value of the battery voltage in millivolt.
-uint32_t BatteryMonitor_GetBatteryVoltage();
-
 #endif  // BATTERY_MONITOR_H
