@@ -168,13 +168,15 @@ cd ./workdir
 To debug the application and to load a new built application you require a wired connection to the host. To establish this you will need to solder a connector to the designated pads on the backside of the board.
 <img src="./documentation/doxygen/diagrams/SHT43_back_with_arrow.png" alt="image" width="50%" height="auto">
 
+>:warning: *Don't supply the board from an external power supply while the battery is plugged in!*
+
 All the twelve pads are labeled. Not all of them are required to be connected to J-TAG. The table below lists all the pins and their connection to the J-TAG connector.
 
 <img src="./documentation/doxygen/diagrams/JTAG_SWD.svg" alt="image"  height="200px">
 
 |SHT43 pad | J-TAG connector|
 |----------|----------------|
-|3V (connect to supply)       | VTref (connect to same supply as Demo Board)         |
+|3V (connect to supply and **remove battery** :warning: )      | VTref (connect to same supply as Demo Board)       |
 |SWCLK     | JTAG-SWDCLK    |
 |SWDIO|JTAG-SWDIO|
 |BOOT (not needed)| - |
