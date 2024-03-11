@@ -126,22 +126,21 @@ typedef union _tBleTypes_AdvertisementMode {
 /// Defines the complete advertisement data of the SHT4x Demo Board
 /// including temperature and humidity measurement values.
 typedef struct __attribute__((__packed__)) {
-  uint8_t adTypeSize;              ///< size type
-  uint8_t adTypeFlag;              ///< flag type
-  uint8_t adTypeValue;             ///< value type
-  uint8_t adTypeManufacturerSize;  ///< size manufacturer
-  uint8_t adTypeManufacturerFlag;  ///< flag manufacturer
-  uint16_t companyIdentifier;      ///< value manufacturer
-  uint8_t sAdvT;                   ///< advertisement type
-  uint8_t sampleType;              ///< format tag of subsequent data
-  uint8_t deviceIdMsb;             ///< device id lsb     (custom data)
-  uint8_t deviceIdLsb;             ///< device id msb     (custom data)
-  uint16_t temperatureTicks;       ///< temperature ticks (custom data)
-  uint16_t humidityTicks;          ///< humidity ticks    (custom data)
-  uint8_t adTypeNameSize;          ///< size device name
-  uint8_t adTypeNameFlag;          ///< type device name
-  /// value device name
-  uint8_t name[BLE_TYPES_LOCAL_NAME_LENGTH];
+  uint8_t adTypeSize;                         ///< size type
+  uint8_t adTypeFlag;                         ///< flag type
+  uint8_t adTypeValue;                        ///< value type
+  uint8_t adTypeNameSize;                     ///< size device name
+  uint8_t adTypeNameFlag;                     ///< type device name
+  uint8_t name[BLE_TYPES_LOCAL_NAME_LENGTH];  ///< local name
+  uint8_t adTypeManufacturerSize;             ///< size manufacturer
+  uint8_t adTypeManufacturerFlag;             ///< flag manufacturer
+  uint16_t companyIdentifier;                 ///< value manufacturer
+  uint8_t sAdvT;                              ///< advertisement type
+  uint8_t sampleType;                         ///< format tag of subsequent data
+  uint8_t deviceIdMsb;                        ///< device id lsb   (custom data)
+  uint8_t deviceIdLsb;                        ///< device id msb   (custom data)
+  uint16_t temperatureTicks;                  ///< temperature     (custom data)
+  uint16_t humidityTicks;                     ///< humidity        (custom data)
 } BleTypes_CompleteAdvertisementData_t;
 
 /// global context containing the variables common to all services
