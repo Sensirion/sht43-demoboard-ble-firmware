@@ -5,13 +5,17 @@ the full log, please refer to the git commit history.
 
 ## Unreleased
 
+## v0.5.3 (2024-02-28)
+
 ### Fixed
 
 * Update advertisement data
 
 ### Changed
 
+* Add warning in readme for wired connection.
 * Introduce filter for battery level measurements.
+* Security requirements for GATT services.
 
 ### Removed
 

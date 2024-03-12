@@ -115,6 +115,13 @@ static BleTypes_CompleteAdvertisementData_t gCompleteAdvData = {
     .name = "",  // will be initialized later on
 };
 
+/// Define the length of the advertisement data
+#define LONG_ADV_DATA_LENGTH (sizeof(gCompleteAdvData))
+
+/// Define the length of the advertisement data when no temperature and
+/// humidity is sent anymore.
+#define SHORT_ADV_DATA_LENGTH (LONG_ADV_DATA_LENGTH - 4);
+
 /// status information about sample notification
 static SampleDataNotificationState_t _sampleNotification;
 
@@ -702,9 +709,11 @@ static void TrySendSampleFrames() {
 static void UpdateAdvertiseSamplesEnable(bool isAdvertiseSamplesEnabled) {
   // it is sufficient to just reduce the manufacturer data length
   // in order to hide the values.
+  gBleApplicationContext.advertisementDataSize = SHORT_ADV_DATA_LENGTH;
   gCompleteAdvData.adTypeManufacturerSize = SHORT_MANUFACTURER_DATA_LENGTH;
 
   if (isAdvertiseSamplesEnabled) {
+    gBleApplicationContext.advertisementDataSize = LONG_ADV_DATA_LENGTH;
     gCompleteAdvData.adTypeManufacturerSize = LONG_MANUFACTURER_DATA_LENGTH;
   }
   DeviceSettingsService_UpdateIsAdvertiseDataEnabled(isAdvertiseSamplesEnabled);
