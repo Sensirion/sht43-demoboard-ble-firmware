@@ -166,6 +166,9 @@ static void TrySendFirstFrame();
 /// or no more samples are available
 static void TrySendSampleFrames();
 
+/// Stop sending samples
+static void StopSendSamples();
+
 /// Update the Advertisement and set the new value in the characteristic
 /// @param isAdvertiseSamplesEnabled Flag that tells if sample data is
 ///                                  advertised.
@@ -405,6 +408,8 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
                   .parameter2 =
                       DataLoggerService_GetNumberOfRequestedSamples()};
               Message_PublishAppMessage(&msg);
+            } else {
+              StopSendSamples();
             }
           }
           break;
@@ -625,7 +630,6 @@ static bool HandleServiceRequestResponse(Message_Message_t* message) {
     DataLoggerService_BuildHeaderFrame(_sampleNotification.txFrameBuffer,
                                        metadata);
     TrySendFirstFrame();
-
     return true;
   }
   if (bleMsg->head.parameter1 == SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES) {
@@ -633,6 +637,7 @@ static bool HandleServiceRequestResponse(Message_Message_t* message) {
         *((BleGatt_RequestResponseData_t*)bleMsg->parameter.responsePtr);
     _sampleNotification.currentDataIndex = 0;
     TrySendSampleFrames();
+
     return true;
   }
   if (bleMsg->head.parameter1 == SERVICE_REQUEST_MESSAGE_ID_TX_POOL_AVAILABLE) {
@@ -670,6 +675,15 @@ static void TrySendFirstFrame() {
       .header.id = SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES,
       .parameter2 = 0};
   Message_PublishAppMessage(&msg);
+}
+
+static void StopSendSamples() {
+  // don't clear a pending request if the download is not yet started
+  if (_sampleNotification.samplesTransmitted > 0 &&
+      _sampleNotification.nrOfSamplesToTransmit > 0) {
+    _sampleNotification.sampleData.dataLength = 0;
+    _sampleNotification.nrOfSamplesToTransmit = 0;
+  }
 }
 
 static void TrySendSampleFrames() {
