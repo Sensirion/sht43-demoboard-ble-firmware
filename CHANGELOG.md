@@ -10,6 +10,7 @@ the full log, please refer to the git commit history.
 ### Fixed
 
 * Update advertisement data
+* Stop pending data download
 
 ### Changed
 
