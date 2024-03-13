@@ -122,6 +122,16 @@ static BleTypes_CompleteAdvertisementData_t gCompleteAdvData = {
 /// humidity is sent anymore.
 #define SHORT_ADV_DATA_LENGTH (LONG_ADV_DATA_LENGTH - 4);
 
+/// advertisement type when advertising normally as demo-board
+#define SHT_ADV_ADV_TYPE 0x00
+/// sample type when advertising normally as demo-board
+#define SHT_ADV_SAMPLE_TYPE 0x06
+
+/// advertisement type when advertisement is disabled
+#define NO_ADV_ADV_TYPE 0xFF
+/// sample type when advertisement is disabled
+#define NO_ADV_SAMPLES_TYPE 0x0
+
 /// status information about sample notification
 static SampleDataNotificationState_t _sampleNotification;
 
@@ -165,6 +175,9 @@ static void TrySendFirstFrame();
 /// Send sample notification frames until all tx buffer space is used up
 /// or no more samples are available
 static void TrySendSampleFrames();
+
+/// Stop sending samples
+static void StopSendSamples();
 
 /// Update the Advertisement and set the new value in the characteristic
 /// @param isAdvertiseSamplesEnabled Flag that tells if sample data is
@@ -405,6 +418,8 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
                   .parameter2 =
                       DataLoggerService_GetNumberOfRequestedSamples()};
               Message_PublishAppMessage(&msg);
+            } else {
+              StopSendSamples();
             }
           }
           break;
@@ -625,7 +640,6 @@ static bool HandleServiceRequestResponse(Message_Message_t* message) {
     DataLoggerService_BuildHeaderFrame(_sampleNotification.txFrameBuffer,
                                        metadata);
     TrySendFirstFrame();
-
     return true;
   }
   if (bleMsg->head.parameter1 == SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES) {
@@ -633,6 +647,7 @@ static bool HandleServiceRequestResponse(Message_Message_t* message) {
         *((BleGatt_RequestResponseData_t*)bleMsg->parameter.responsePtr);
     _sampleNotification.currentDataIndex = 0;
     TrySendSampleFrames();
+
     return true;
   }
   if (bleMsg->head.parameter1 == SERVICE_REQUEST_MESSAGE_ID_TX_POOL_AVAILABLE) {
@@ -670,6 +685,15 @@ static void TrySendFirstFrame() {
       .header.id = SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES,
       .parameter2 = 0};
   Message_PublishAppMessage(&msg);
+}
+
+static void StopSendSamples() {
+  // don't clear a pending request if the download is not yet started
+  if (_sampleNotification.samplesTransmitted > 0 &&
+      _sampleNotification.nrOfSamplesToTransmit > 0) {
+    _sampleNotification.sampleData.dataLength = 0;
+    _sampleNotification.nrOfSamplesToTransmit = 0;
+  }
 }
 
 static void TrySendSampleFrames() {
@@ -711,10 +735,13 @@ static void UpdateAdvertiseSamplesEnable(bool isAdvertiseSamplesEnabled) {
   // in order to hide the values.
   gBleApplicationContext.advertisementDataSize = SHORT_ADV_DATA_LENGTH;
   gCompleteAdvData.adTypeManufacturerSize = SHORT_MANUFACTURER_DATA_LENGTH;
-
+  gCompleteAdvData.sAdvT = NO_ADV_ADV_TYPE;
+  gCompleteAdvData.sampleType = NO_ADV_SAMPLES_TYPE;
   if (isAdvertiseSamplesEnabled) {
     gBleApplicationContext.advertisementDataSize = LONG_ADV_DATA_LENGTH;
     gCompleteAdvData.adTypeManufacturerSize = LONG_MANUFACTURER_DATA_LENGTH;
+    gCompleteAdvData.sAdvT = SHT_ADV_ADV_TYPE;
+    gCompleteAdvData.sampleType = SHT_ADV_SAMPLE_TYPE;
   }
   DeviceSettingsService_UpdateIsAdvertiseDataEnabled(isAdvertiseSamplesEnabled);
 }
