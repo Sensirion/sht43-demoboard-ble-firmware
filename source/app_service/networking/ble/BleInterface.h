@@ -54,6 +54,9 @@ typedef enum {
   BLE_INTERFACE_MSG_ID_SVC_REQ_RESPONSE,
   BLE_INTERFACE_MSG_ID_TX_POOL_AVAILABLE,
   BLE_INTERFACE_MSG_ID_UPDATE_DEVICE_SETTINGS,
+  BLE_INTERFACE_MSG_ID_ASK_USER_ACCEPT_PAIRING,
+  BLE_INTERFACE_MSG_ID_USER_ACCEPTED_PAIRING,
+  BLE_INTERFACE_MSG_ID_PAIRING_TIMEOUT,
 } BLE_INTERFACE_MSG_ID_t;
 
 /// Defines the message structure of explicit BleInterface
@@ -66,6 +69,7 @@ typedef struct _tBleInterface_Message {
     uint32_t reserve;       ///< Reserve to fill up to 64 bits
     void* responsePtr;      ///< Pointer to response data
     uint32_t responseData;  ///< A response data item.
+    uint32_t pairingCode;   ///< The pairing code that is shown on the screen
   } parameter;              ///< Message parameter
 } BleInterface_Message_t;
 
