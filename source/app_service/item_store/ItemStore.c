@@ -440,7 +440,8 @@ static bool InitEnumeratorStatus(uint8_t page_nr,
                                     page_nr)) {
       return false;
     }
-    status->itemsOnPage = status->enumeratingPage.completeTag.nrOfItems;
+    status->itemsOnPage =
+        ((FLASH_PAGE_SIZE) - sizeof(PageHeader_t)) / itemStore->itemSize;
   }
   // if this is not true, we read over the end of the item store
   return status->currentIndex < status->itemsOnPage;
@@ -473,7 +474,10 @@ static bool FindEnumeratorStartPosition(ItemStoreInfo_t* itemStore,
       skipping -= itemsOnPage;
       break;
     }
-    page_nr = itemStore->enumeratorStatus.enumeratingPage.completeTag.nextPage;
+    if (skipping > 0) {
+      page_nr =
+          itemStore->enumeratorStatus.enumeratingPage.completeTag.nextPage;
+    }
   } while (skipping >= 0);
 
   if (skipping > 0) {
