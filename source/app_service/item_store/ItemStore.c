@@ -367,24 +367,12 @@ void ItemStore_BeginEnumerate(ItemStore_ItemDef_t item,
   Message_PublishAppMessage((Message_Message_t*)&msg);
 }
 
-void ItemStore_EndEnumerate(ItemStore_Enumerator_t* enumerator) {
-  if (enumerator->enumeratorDetails == 0) {
-    return;
-  }
-  EnumeratorStatus_t* status =
-      (EnumeratorStatus_t*)enumerator->enumeratorDetails;
-  if (status->enumeratingPage.beginTag.magic != PAGE_MAGIC) {
-    return;
-  }
-  ItemStoreInfo_t* itemStore =
-      &_itemStore[status->enumeratingPage.beginTag.itemId];
+void ItemStore_EndEnumerate(ItemStore_Enumerator_t* enumerator,
+                            ItemStore_ItemDef_t item) {
+  ItemStoreInfo_t* itemStore = &_itemStore[item];
   itemStore->currentState = IdleState;
-  ItemStoreMessage_t msg = {
-      .header.category = MESSAGE_BROKER_CATEGORY_ITEM_STORE,
-      .header.id = ITEM_STORE_MESSAGE_END_ENUMERATE,
-      .header.parameter1 = status->enumeratingPage.beginTag.itemId,
-      .data.enumerateParameter = 0};
-  Message_PublishAppMessage((Message_Message_t*)&msg);
+  enumerator->enumeratorDetails = 0;
+  enumerator->hasMoreItems = false;
 }
 
 void BeginEnumerate(ItemStore_ItemDef_t item,

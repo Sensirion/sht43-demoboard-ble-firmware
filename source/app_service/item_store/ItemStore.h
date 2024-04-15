@@ -178,7 +178,9 @@ void ItemStore_BeginEnumerate(ItemStore_ItemDef_t item,
 /// an open enumerator, new items may be added to the item store.
 /// This operation is executed synchronously
 /// @param enumerator Pointer to enumerator object that shall be initialized
-void ItemStore_EndEnumerate(ItemStore_Enumerator_t* enumerator);
+/// @param item the item store that was enumerated
+void ItemStore_EndEnumerate(ItemStore_Enumerator_t* enumerator,
+                            ItemStore_ItemDef_t item);
 
 /// Get the number of items that are stored in the specified item store
 /// @param enumerator Pointer to an initialized enumerator;
