@@ -367,24 +367,12 @@ void ItemStore_BeginEnumerate(ItemStore_ItemDef_t item,
   Message_PublishAppMessage((Message_Message_t*)&msg);
 }
 
-void ItemStore_EndEnumerate(ItemStore_Enumerator_t* enumerator) {
-  if (enumerator->enumeratorDetails == 0) {
-    return;
-  }
-  EnumeratorStatus_t* status =
-      (EnumeratorStatus_t*)enumerator->enumeratorDetails;
-  if (status->enumeratingPage.beginTag.magic != PAGE_MAGIC) {
-    return;
-  }
-  ItemStoreInfo_t* itemStore =
-      &_itemStore[status->enumeratingPage.beginTag.itemId];
+void ItemStore_EndEnumerate(ItemStore_Enumerator_t* enumerator,
+                            ItemStore_ItemDef_t item) {
+  ItemStoreInfo_t* itemStore = &_itemStore[item];
   itemStore->currentState = IdleState;
-  ItemStoreMessage_t msg = {
-      .header.category = MESSAGE_BROKER_CATEGORY_ITEM_STORE,
-      .header.id = ITEM_STORE_MESSAGE_END_ENUMERATE,
-      .header.parameter1 = status->enumeratingPage.beginTag.itemId,
-      .data.enumerateParameter = 0};
-  Message_PublishAppMessage((Message_Message_t*)&msg);
+  enumerator->enumeratorDetails = 0;
+  enumerator->hasMoreItems = false;
 }
 
 void BeginEnumerate(ItemStore_ItemDef_t item,
@@ -452,7 +440,8 @@ static bool InitEnumeratorStatus(uint8_t page_nr,
                                     page_nr)) {
       return false;
     }
-    status->itemsOnPage = status->enumeratingPage.completeTag.nrOfItems;
+    status->itemsOnPage =
+        ((FLASH_PAGE_SIZE) - sizeof(PageHeader_t)) / itemStore->itemSize;
   }
   // if this is not true, we read over the end of the item store
   return status->currentIndex < status->itemsOnPage;
@@ -485,7 +474,10 @@ static bool FindEnumeratorStartPosition(ItemStoreInfo_t* itemStore,
       skipping -= itemsOnPage;
       break;
     }
-    page_nr = itemStore->enumeratorStatus.enumeratingPage.completeTag.nextPage;
+    if (skipping > 0) {
+      page_nr =
+          itemStore->enumeratorStatus.enumeratingPage.completeTag.nextPage;
+    }
   } while (skipping >= 0);
 
   if (skipping > 0) {
