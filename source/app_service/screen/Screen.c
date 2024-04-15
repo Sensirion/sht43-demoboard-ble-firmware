@@ -76,10 +76,11 @@ const Screen_SegmentBitmap_t gScreen_Digit[] = {
 /// LCD Initialization Function
 static void InitLcdHal(void) {
   gLcd.Instance = LCD;
-  // Required frequency: 75 Hz
-  // LCD CLK: LSE = 32744Hz
-  // 32744Hz / (16 * 27) ~= 75Hz
-  gLcd.Init.Prescaler = LCD_PRESCALER_16;
+
+  // LSE CLK: LSE = 32744Hz
+  // freq = LSE_CLK/ (2*PS*(16+DIV)) according spec page 529
+  //
+  gLcd.Init.Prescaler = LCD_PRESCALER_8;
   gLcd.Init.Divider = LCD_DIVIDER_16;
   gLcd.Init.Duty = LCD_DUTY_1_4;
   gLcd.Init.Bias = LCD_BIAS_1_3;
@@ -90,7 +91,7 @@ static void InitLcdHal(void) {
   gLcd.Init.MuxSegment = LCD_MUXSEGMENT_DISABLE;
   gLcd.Init.BlinkMode = LCD_BLINKMODE_OFF;
   gLcd.Init.BlinkFrequency = LCD_BLINKFREQUENCY_DIV8;
-  gLcd.Init.HighDrive = LCD_HIGHDRIVE_DISABLE;
+  gLcd.Init.HighDrive = LCD_HIGHDRIVE_ENABLE;
 
   if (HAL_LCD_Init(&gLcd) != HAL_OK) {
     ErrorHandler_UnrecoverableError(ERROR_CODE_HARDWARE);
@@ -467,6 +468,8 @@ void HAL_LCD_MspInit(LCD_HandleTypeDef* hlcd) {
     gpioInitStruct.Alternate = GPIO_AF11_LCD;
     HAL_GPIO_Init(GPIOD, &gpioInitStruct);
 
+    // enable voltage buffer
+    __HAL_LCD_VOLTAGE_BUFFER_ENABLE(hlcd);
     // LCD interrupt Init
     HAL_NVIC_SetPriority(LCD_IRQn, IRQ_PRIO_APP, 0);
     HAL_NVIC_EnableIRQ(LCD_IRQn);
