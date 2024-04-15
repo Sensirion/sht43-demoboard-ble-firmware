@@ -111,7 +111,7 @@ static OTP_ID0_t* LoadOtpData() {
 static void ConfigureBrownOutLevel() {
   uint32_t option_byte_0 = *(uint32_t*)OPTION_BYTE_BASE;
   // the proper level is already set
-  if ((option_byte_0 & FLASH_OPTR_BOR_LEV_1) == OB_BOR_LEVEL_2) {
+  if ((option_byte_0 & (0x7 << FLASH_OPTR_BOR_LEV_Pos)) == OB_BOR_LEVEL_0) {
     return;
   }
 
@@ -123,7 +123,7 @@ static void ConfigureBrownOutLevel() {
 
   optionByteProgramData.OptionType = OPTIONBYTE_USER;
   optionByteProgramData.UserType = OB_USER_BOR_LEV;
-  optionByteProgramData.UserConfig = OB_BOR_LEVEL_2;
+  optionByteProgramData.UserConfig = OB_BOR_LEVEL_0;
 
   HAL_StatusTypeDef status = HAL_FLASHEx_OBProgram(&optionByteProgramData);
   ASSERT(status == HAL_OK);
