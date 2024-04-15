@@ -62,7 +62,8 @@
 #define SHOW_BATTERY_SYMBOL(x)                             \
   (((x) == BATTERY_MONITOR_APP_STATE_REDUCED_OPERATION) || \
    ((x) == BATTERY_MONITOR_APP_STATE_CRITICAL_BATTERY_LEVEL))
-
+/// Defines the timeout in seconds when the pairing is aborted
+#define PAIRING_TIMEOUT_S 30
 /// Timer ID sensor readout trigger timer
 static uint8_t _sht4xReadoutTimer;
 
@@ -86,6 +87,9 @@ typedef struct _tPresentation_Controller {
   uint64_t uptimeSeconds;                  ///< nr of seconds the system is up
   uint64_t uptimeSecondsSinceUserEvent;    ///< nr of seconds since last user
                                            ///< user interaction
+  uint32_t pairingWaitTimeSeconds;         ///< the time the application is
+                                           ///< waiting for a pairing request
+  uint32_t pairingCode;                    ///< key that is shown on the screen
 
   /// Callback to display either relative humidity or dewPoint
   void (*DisplayValueRow1)(float temperature, float relativeHumidity);
@@ -130,6 +134,11 @@ static bool AppShowVersionStateCb(Message_Message_t* msg);
 /// @return bool if the message was handled, false otherwise
 static bool AppNormalOperationStateCb(Message_Message_t* msg);
 
+/// Handles the presentation of application while pairing
+/// @param msg message that can be received
+/// @return bool if the message was handled, false otherwise
+static bool AppPairingStateCb(Message_Message_t* msg);
+
 /// Handles BatteryEvents in all states of the Presentation controller
 /// @param msg message that can be received
 /// @return bool if the message was handled, false otherwise
@@ -166,6 +175,14 @@ static void LogFirmwareVersion();
 ///
 /// @param controller instance of the presentation controller
 static void DisplayVersionScreen(Presentation_Controller_t* controller);
+
+/// Default screen that is displayed when a user is pairing.
+///
+/// The screen is shown until the pairing is completed either by
+/// pressing the button or after a time of `PAIRING_TIMEOUT_S` seconds.
+///
+/// @param controller instance of the presentation controller
+static void DisplayPairingScreen(Presentation_Controller_t* controller);
 
 /// Function to display relative humidity on screen
 /// @param temperature measured temperature
@@ -323,10 +340,18 @@ static bool AppNormalOperationStateCb(Message_Message_t* msg) {
     PublishReadoutIntervalIfChanged(SHORT_READOUT_INTERVAL_S);
     return true;
   }
-  if (msg->header.category == MESSAGE_BROKER_CATEGORY_BLE_EVENT &&
-      msg->header.id == BLE_INTERFACE_MSG_ID_DISCONNECT) {
-    _controller.uptimeSecondsSinceUserEvent = 0;
-    PublishReadoutIntervalIfChanged(SHORT_READOUT_INTERVAL_S);
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_BLE_EVENT) {
+    if (msg->header.id == BLE_INTERFACE_MSG_ID_DISCONNECT) {
+      _controller.uptimeSecondsSinceUserEvent = 0;
+      PublishReadoutIntervalIfChanged(SHORT_READOUT_INTERVAL_S);
+    }
+    if (msg->header.id == BLE_INTERFACE_MSG_ID_ASK_USER_ACCEPT_PAIRING) {
+      BleInterface_Message_t* bleMessage = (BleInterface_Message_t*)msg;
+      _controller.pairingWaitTimeSeconds = 0;
+      _controller.pairingCode = bleMessage->parameter.pairingCode;
+      _controller.listener.currentMessageHandlerCb = AppPairingStateCb;
+      DisplayPairingScreen(&_controller);
+    }
     return true;
   }
   if (HandleSystemStateChange(msg)) {
@@ -389,6 +414,52 @@ static bool HandleSystemStateChange(Message_Message_t* msg) {
   return true;
 }
 
+static bool AppPairingStateCb(Message_Message_t* msg) {
+  if ((msg->header.category == MESSAGE_BROKER_CATEGORY_SENSOR_VALUE) &&
+      (msg->header.id == SHT4X_MESSAGE_ID_SENSOR_DATA) &&
+      (msg->header.parameter1 != SHT4X_COMMAND_READ_SERIAL_NUMBER)) {
+    Sht4x_SensorMessage_t* shtMessage = (Sht4x_SensorMessage_t*)msg;
+    _controller.humidity =
+        Sht4x_TicksToHumidity(shtMessage->data.measurement.humidityTicks);
+    _controller.temperatureC = Sht4x_TicksToTemperatureCelsius(
+        shtMessage->data.measurement.temperatureTicks);
+    LogRhtValues(&_controller);
+    return true;
+  }
+  if ((msg->header.category == MESSAGE_BROKER_CATEGORY_TIME_INFORMATION) &&
+      (msg->header.id == MESSAGE_ID_TIME_INFO_TIME_ELAPSED)) {
+    _controller.uptimeSeconds += msg->header.parameter1;
+    _controller.uptimeSecondsSinceUserEvent += msg->header.parameter1;
+    _controller.pairingWaitTimeSeconds += msg->header.parameter1;
+    if (_controller.pairingWaitTimeSeconds >= PAIRING_TIMEOUT_S) {
+      Message_Message_t timeoutMsg = {
+          .header.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT,
+          .header.id = BLE_INTERFACE_MSG_ID_PAIRING_TIMEOUT,
+          .header.parameter1 = 0,
+          .parameter2 = 0};
+      BleInterface_PublishBleMessage(&timeoutMsg);
+      _controller.listener.currentMessageHandlerCb = AppNormalOperationStateCb;
+      DisplayNormalOperationScreen(&_controller);
+    }
+    return true;
+  }
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_BUTTON_EVENT) {
+    Message_Message_t pairingOkMsg = {
+        .header.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT,
+        .header.id = BLE_INTERFACE_MSG_ID_USER_ACCEPTED_PAIRING,
+        .header.parameter1 = 0,
+        .parameter2 = 0};
+    BleInterface_PublishBleMessage(&pairingOkMsg);
+    _controller.listener.currentMessageHandlerCb = AppNormalOperationStateCb;
+    DisplayNormalOperationScreen(&_controller);
+    return true;
+  }
+  if (HandleSystemStateChange(msg)) {
+    return true;
+  }
+  return EvalBatteryEventCb(msg);
+}
+
 static void SetLogEnabled(bool enabled) {
   Trace_TraceFunctionCb_t traceFun = Trace_DevNull;
   if (enabled) {
@@ -415,6 +486,33 @@ static void DisplayVersionScreen(Presentation_Controller_t* controller) {
 
   // the two bytes are separated by '.'
   Screen_DisplayPoint6(true);
+  Screen_UpdatePendingRequests();
+}
+
+static void DisplayPairingScreen(Presentation_Controller_t* controller) {
+  // turn off unit symbols regardless of the display
+  Screen_DisplayCelsius1(false);
+  Screen_DisplayCelsius2(false);
+  Screen_DisplayFahrenheit1(false);
+  Screen_DisplayFahrenheit2(false);
+  Screen_DisplayRh(false);
+
+  // turn of unused digits
+  Screen_DisplaySymbol1(SCREEN_BLANK);
+  Screen_DisplaySymbol5(SCREEN_BLANK);
+
+  // show the 6 digits of the pass key
+  Screen_DisplaySymbolCb_t passKey[] = {
+      Screen_DisplaySymbol8, Screen_DisplaySymbol7, Screen_DisplaySymbol6,
+      Screen_DisplaySymbol4, Screen_DisplaySymbol3, Screen_DisplaySymbol2};
+  uint32_t absValue = _controller.pairingCode;
+  uint8_t position = 0;
+  uint8_t digit = 0;
+  for (; position < COUNT_OF(passKey); position++) {
+    digit = absValue % 10;
+    passKey[position](Screen_DigitToBitmap(digit));
+    absValue /= 10;
+  }
   Screen_UpdatePendingRequests();
 }
 

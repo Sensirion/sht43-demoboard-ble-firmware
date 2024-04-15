@@ -369,22 +369,18 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
 
         case ACI_GAP_NUMERIC_COMPARISON_VALUE_VSEVT_CODE:
           LOG_DEBUG_CASE(ACI_GAP_NUMERIC_COMPARISON_VALUE_VSEVT_CODE);
-          // TODO: here we get notified from the pin entry of the user.
-          // We will need to display the code and wait for a reaction
-          // before returning yes!
-          static uint32_t code = 0;
-          uint32_t temp_code = 0;
-          memccpy(&temp_code, &bleCoreEvent->data[2], 4, sizeof(temp_code));
-          if (temp_code != code) {
-            code = temp_code;
-          }
 
-          ret = aci_gap_numeric_comparison_value_confirm_yesno(
-              gBleApplicationContext.bleApplicationContextLegacy
-                  .connectionHandle,
-              YES);
-          LOG_DEBUG_CALLSTATUS("aci_gap_numeric_comparison_value_confirm_yesno",
-                               ret);
+          uint32_t pairingCode = 0;
+          // read the received pairing code
+          memccpy(&pairingCode, &bleCoreEvent->data[2], 4, sizeof(pairingCode));
+
+          BleInterface_Message_t pairingMessage = {
+              .head.category = MESSAGE_BROKER_CATEGORY_BLE_EVENT,
+              .head.id = BLE_INTERFACE_MSG_ID_ASK_USER_ACCEPT_PAIRING,
+              .head.parameter1 = 0,
+              .parameter.pairingCode = pairingCode};
+          Message_PublishAppMessage((Message_Message_t*)&pairingMessage);
+
           break;
 
         case ACI_GAP_PAIRING_COMPLETE_VSEVT_CODE:
@@ -480,6 +476,19 @@ static bool BleDefaultStateCb(Message_Message_t* message) {
     }
     if (message->header.id == BLE_INTERFACE_MSG_ID_UPDATE_DEVICE_SETTINGS) {
       UpdateDeviceSettingCharacteristics(message);
+      return true;
+    }
+
+    if (message->header.id == BLE_INTERFACE_MSG_ID_USER_ACCEPTED_PAIRING) {
+      aci_gap_numeric_comparison_value_confirm_yesno(
+          gBleApplicationContext.bleApplicationContextLegacy.connectionHandle,
+          YES);
+      return true;
+    }
+    if (message->header.id == BLE_INTERFACE_MSG_ID_PAIRING_TIMEOUT) {
+      aci_gap_numeric_comparison_value_confirm_yesno(
+          gBleApplicationContext.bleApplicationContextLegacy.connectionHandle,
+          NO);
       return true;
     }
   }

@@ -104,8 +104,8 @@ typedef struct _tItemStore_SystemConfig {
 /// As the flash is written in double words, we put two samples in one item.
 typedef struct _tItemStore_MeasurementSample {
   struct {
-    uint16_t humidityTicks;     ///< raw measurement value of humidity
     uint16_t temperatureTicks;  ///< raw measurement value of temperature
+    uint16_t humidityTicks;     ///< raw measurement value of humidity
   } sample[2];                  ///< samples contained in this item
 } ItemStore_MeasurementSample_t;
 
