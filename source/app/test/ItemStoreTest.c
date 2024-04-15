@@ -65,6 +65,9 @@ ItemStore_ItemStruct_t _testItemBuffer;
 /// Enumerator to read data from the flash
 ItemStore_Enumerator_t _enumerator;
 
+/// item store item that is enumerated during a test
+static ItemStore_ItemDef_t _itemStoreItem;
+
 /// Callback function used as parameter for ItemStoreTest_BeginEnumerate
 /// @param status of the operation BeginEnumerate
 static void EnumeratorReadToEnd(bool status);
@@ -98,7 +101,8 @@ void ItemStoreTest_EnumerateItems(SysTest_TestMessageParameter_t param) {
     _numberOfItemsToRead = 0;
     callback = EnumeratorReadToEnd;
   }
-  ItemStore_BeginEnumerate(param.byteParameter[0], &_enumerator, callback);
+  _itemStoreItem = param.byteParameter[0];
+  ItemStore_BeginEnumerate(_itemStoreItem, &_enumerator, callback);
 }
 
 void ItemStoreTest_DeleteAllItems(SysTest_TestMessageParameter_t param) {
@@ -119,7 +123,7 @@ static void OnTimerElapsed() {
 static void EnumeratorReadToEnd(bool status) {
   if (!status) {
     Trace_Message("Enumerator was not initialized properly!");
-    ItemStore_EndEnumerate(&_enumerator);
+    ItemStore_EndEnumerate(&_enumerator, _itemStoreItem);
     return;
   }
   while (_enumerator.hasMoreItems) {
@@ -129,13 +133,13 @@ static void EnumeratorReadToEnd(bool status) {
   }
   Trace_Message("\n=>read to end done: read items = %i\n",
                 _numberOfItemsToRead);
-  ItemStore_EndEnumerate(&_enumerator);
+  ItemStore_EndEnumerate(&_enumerator, _itemStoreItem);
 }
 
 static void EnumeratorReadCount(bool status) {
   if (!status) {
     Trace_Message("Enumerator was not initialized properly!\n");
-    ItemStore_EndEnumerate(&_enumerator);
+    ItemStore_EndEnumerate(&_enumerator, _itemStoreItem);
     return;
   }
   uint16_t readItems = 0;
@@ -147,5 +151,5 @@ static void EnumeratorReadCount(bool status) {
   }
   Trace_Message("\n=>read count from 0 done: read items = %i\n",
                 _numberOfItemsToRead);
-  ItemStore_EndEnumerate(&_enumerator);
+  ItemStore_EndEnumerate(&_enumerator, _itemStoreItem);
 }

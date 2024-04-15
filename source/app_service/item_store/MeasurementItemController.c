@@ -342,12 +342,13 @@ static void CountSamples(bool enumeratorReady) {
       .parameter.responseData = 0};
 
   if (!enumeratorReady) {
+    ItemStore_EndEnumerate(&_sampleEnumerator, ITEM_DEF_MEASUREMENT_SAMPLE);
     BleInterface_PublishBleMessage((Message_Message_t*)&msg);
     return;
   }
   msg.parameter.responseData = ItemStore_Count(&_sampleEnumerator) * 2;
   BleInterface_PublishBleMessage((Message_Message_t*)&msg);
-  ItemStore_EndEnumerate(&_sampleEnumerator);
+  ItemStore_EndEnumerate(&_sampleEnumerator, ITEM_DEF_MEASUREMENT_SAMPLE);
 }
 
 static void BeginReadSamples(bool enumeratorReady) {
@@ -362,7 +363,7 @@ static void BeginReadSamples(bool enumeratorReady) {
   if (enumeratorReady) {
     availableSamples = ItemStore_Count(&_sampleEnumerator) * 2;
   }
-  ItemStore_EndEnumerate(&_sampleEnumerator);
+  ItemStore_EndEnumerate(&_sampleEnumerator, ITEM_DEF_MEASUREMENT_SAMPLE);
   _sampleRequest.metadata.numberOfSamples =
       MIN(availableSamples, _sampleRequest.requestedNrOfSamples);
   msg.parameter.responsePtr = &_sampleRequest.metadata;
@@ -394,6 +395,7 @@ static void ReadMoreSamples(bool enumeratorReady) {
       .parameter.responsePtr = 0};
 
   if (!enumeratorReady) {
+    ItemStore_EndEnumerate(&_sampleEnumerator, ITEM_DEF_MEASUREMENT_SAMPLE);
     ErrorHandler_RecoverableError(ERROR_CODE_ITEM_STORE);
     return;
   }
@@ -405,7 +407,7 @@ static void ReadMoreSamples(bool enumeratorReady) {
         &_sampleEnumerator,
         (ItemStore_ItemStruct_t*)&_sampleRequest.samplesCache[index++]);
   }
-  ItemStore_EndEnumerate(&_sampleEnumerator);
+  ItemStore_EndEnumerate(&_sampleEnumerator, ITEM_DEF_MEASUREMENT_SAMPLE);
   _sampleRequest.enumeratorStartIndex += index;
   _sampleRequest.responseData.dataLength =
       index * sizeof(ItemStore_MeasurementSample_t);

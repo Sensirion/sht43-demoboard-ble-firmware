@@ -141,7 +141,7 @@ static void InitializeSettings(bool ready) {
   ItemStore_GetNext(&_settingsEnumerator,
                     (ItemStore_ItemStruct_t*)&_actualSettings);
 
-  ItemStore_EndEnumerate(&_settingsEnumerator);
+  ItemStore_EndEnumerate(&_settingsEnumerator, ITEM_DEF_SYSTEM_CONFIG);
   if (ComputeCrcOnActualSetting() != _actualSettings.crc) {
     _actualSettings = _defaultSettings;
   }
