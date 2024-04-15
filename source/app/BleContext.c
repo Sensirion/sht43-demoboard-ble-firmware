@@ -516,7 +516,6 @@ static bool BleDefaultStateCb(Message_Message_t* message) {
 static bool BleDisabledStateCb(Message_Message_t* message) {
   if (message->header.category == MESSAGE_BROKER_CATEGORY_BUTTON_EVENT &&
       message->header.id == BUTTON_EVENT_LONG_PRESS) {
-    gBleApplicationContext.timeRunningTick = 0;
     BleTypes_AdvertisementMode_t advSpec = {
         .advertiseModeSpecification.connectable = true,
         .advertiseModeSpecification.interval = ADVERTISEMENT_INTERVAL_SHORT};
@@ -536,7 +535,9 @@ static bool BleDisabledStateCb(Message_Message_t* message) {
 static bool ForwardToBleAppCb(Message_Message_t* message) {
   if (message->header.category == MESSAGE_BROKER_CATEGORY_TIME_INFORMATION &&
       message->header.id == MESSAGE_ID_TIME_INFO_TIME_ELAPSED) {
-    BleInterface_PublishBleMessage(message);
+    // no need to forward the message as it is only used to update
+    // the time running variable
+    gBleApplicationContext.timeRunningSeconds = message->parameter2;
     return true;
   }
 
@@ -549,7 +550,7 @@ static bool ForwardToBleAppCb(Message_Message_t* message) {
   if (message->header.category == MESSAGE_BROKER_CATEGORY_BUTTON_EVENT &&
       message->header.id == BUTTON_EVENT_LONG_PRESS) {
     // do not react on long press during bootup
-    if (gBleApplicationContext.timeRunningTick < 5) {
+    if (gBleApplicationContext.timeRunningSeconds < 5) {
       return false;
     }
     BleInterface_PublishBleMessage(message);

@@ -190,7 +190,7 @@ typedef struct {
   BleTypes_GlobalContext_t bleApplicationContextLegacy;
   /// Connection Status
   BleTypes_ConnStatus_t deviceConnectionStatus;
-  uint64_t timeRunningTick;       ///< the time the ble app is running
+  uint64_t timeRunningSeconds;    ///< the time the app is running
   void* advertisementData;        ///< advertisement data
   uint8_t advertisementDataSize;  ///< size of advertisement
   uint8_t* localName;             ///< Pointer to the device name
