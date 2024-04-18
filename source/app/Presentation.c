@@ -116,30 +116,30 @@ static void StartBatterySymbolBlinkTimer();
 /// Toggle the battery low symbol on the LCD screen.
 ///
 /// When the voltage level goes below 2.4 volt the battery low symbol starts blinking.
-/// This function is used to turn the symbol alernating on and off in a timer interrupt.
+/// This function is used to turn the symbol alternating on and off in a timer interrupt.
 static void ToggleBatteryLowSymbol();
 
-/// Handles the Presentation of the application while booting
+/// Handles the presentation of the application while booting.
 /// @param msg message that can be received
 /// @return bool if the message was handled, false otherwise
 static bool AppBootStateCb(Message_Message_t* msg);
 
-/// Handles the Presentation of the application for the two first time ticks
+/// Handles the presentation of the application for the two first time ticks.
 /// @param msg message that can be received
 /// @return bool if the message was handled, false otherwise
 static bool AppShowVersionStateCb(Message_Message_t* msg);
 
-/// Handles the Presentation of the application while in normal operation
+/// Handles the presentation of the application while in normal operation.
 /// @param msg message that can be received
 /// @return bool if the message was handled, false otherwise
 static bool AppNormalOperationStateCb(Message_Message_t* msg);
 
-/// Handles the presentation of application while pairing
+/// Handles the presentation of application while pairing.
 /// @param msg message that can be received
 /// @return bool if the message was handled, false otherwise
 static bool AppPairingStateCb(Message_Message_t* msg);
 
-/// Handles BatteryEvents in all states of the Presentation controller
+/// Handles BatteryEvents in all states of the Presentation controller.
 /// @param msg message that can be received
 /// @return bool if the message was handled, false otherwise
 static bool EvalBatteryEventCb(Message_Message_t* msg);
