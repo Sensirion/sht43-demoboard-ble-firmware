@@ -43,6 +43,7 @@ set(HAL_SOURCES
     Middlewares/ST/STM32_WPAN/ble/core/auto/ble_gatt_aci.c
     Middlewares/ST/STM32_WPAN/ble/core/auto/ble_hal_aci.c
     Middlewares/ST/STM32_WPAN/ble/core/auto/ble_hci_le.c
+    Middlewares/ST/STM32_WPAN/ble/core/auto/ble_l2cap_aci.c
     Middlewares/ST/STM32_WPAN/ble/core/template/osal.c
     Middlewares/ST/STM32_WPAN/ble/svc/Src/svc_ctl.c
     Middlewares/ST/STM32_WPAN/utilities/stm_list.c

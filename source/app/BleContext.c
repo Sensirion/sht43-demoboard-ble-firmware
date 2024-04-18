@@ -326,6 +326,14 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
           gBleApplicationContext.bleApplicationContextLegacy.connectionHandle =
               connectionCompleteEvent->Connection_Handle;
 
+          aci_l2cap_connection_parameter_update_req(
+              connectionCompleteEvent->Connection_Handle,
+              0x6,  // 6 * 1.2 ms
+              0x6,  // 6 * 1.2 ms,
+              connectionCompleteEvent
+                  ->Conn_Latency,  // don't change the latency
+              L2CAP_TIMEOUT_MULTIPLIER);
+
           break;  // HCI_LE_CONNECTION_COMPLETE_SUBEVT_CODE
         }
 
