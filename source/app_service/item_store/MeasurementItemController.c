@@ -54,6 +54,13 @@ typedef struct _tSampleRequestData {
   /// Number requested samples
   uint16_t requestedNrOfSamples;
 
+  /// Number of already read samples
+  uint16_t alreadyReadSamples;
+
+  /// Extra sample to be read because of uneven number of samples requested.
+  /// The value is 0 or 1!
+  uint8_t extraSample;
+
   /// A buffer to hold one page of samples;
   /// Since we cannot add more samples while enumerating, we read page by page
   /// and release the enumerator after each read.
@@ -68,7 +75,7 @@ typedef struct _tMeasurementItemController {
   /// Message listener of controller
   MessageListener_Listener_t listener;
   /// Logging interval
-  uint32_t loggingIntervalS;
+  int32_t loggingIntervalS;
   /// Count-down of logging interval
   int32_t remainingTimeS;
   /// Moving average of humidity;
@@ -295,7 +302,7 @@ static bool HandleBleServiceRequest(Message_Message_t* message) {
   }
   if (message->header.id == SERVICE_REQUEST_MESSAGE_ID_SET_LOGGING_INTERVAL) {
     // we allow logging intervals only to be a multiple of 10s
-    uint32_t newInterval = message->parameter2 / 10000 * 10;
+    int32_t newInterval = message->parameter2 / 10000 * 10;
     if (newInterval < 10) {
       newInterval = 10;
     }
@@ -317,6 +324,7 @@ static bool HandleBleServiceRequest(Message_Message_t* message) {
 
   if (message->header.id == SERVICE_REQUEST_MESSAGE_ID_SET_REQUESTED_SAMPLES) {
     _sampleRequest.requestedNrOfSamples = message->parameter2;
+    _sampleRequest.alreadyReadSamples = 0;
     ItemStore_BeginEnumerate(ITEM_DEF_MEASUREMENT_SAMPLE, &_sampleEnumerator,
                              BeginReadSamples);
     return true;
@@ -366,21 +374,30 @@ static void BeginReadSamples(bool enumeratorReady) {
   ItemStore_EndEnumerate(&_sampleEnumerator, ITEM_DEF_MEASUREMENT_SAMPLE);
   _sampleRequest.metadata.numberOfSamples =
       MIN(availableSamples, _sampleRequest.requestedNrOfSamples);
+  _sampleRequest.extraSample = _sampleRequest.metadata.numberOfSamples % 2;
+
   msg.parameter.responsePtr = &_sampleRequest.metadata;
   _sampleRequest.metadata.loggingIntervalMs =
       _measurementItemController.loggingIntervalS * 1000;
 
   // compute where we need to start reading from.
   _sampleRequest.enumeratorStartIndex = 0;
-  if (availableSamples > _sampleRequest.requestedNrOfSamples) {
+  if (availableSamples > _sampleRequest.metadata.numberOfSamples) {
     _sampleRequest.enumeratorStartIndex =
-        (availableSamples - _sampleRequest.requestedNrOfSamples) / 2;
+        (availableSamples - _sampleRequest.metadata.numberOfSamples -
+         _sampleRequest.extraSample) /
+        2;
   }
   // compute the age of the last sample in flash
+  // this is a number between 0 and loggingIntervalS
+  int32_t time_until_next_log_entry =
+      MAX(0, MIN(_measurementItemController.loggingIntervalS,
+                 (_measurementItemController.loggingIntervalS -
+                  _measurementItemController.remainingTimeS)));
   _sampleRequest.metadata.ageOfLatestSample =
-      ((_measurementItemController.loggingIntervalS -
-        _measurementItemController.remainingTimeS) +
-       _measurementItemController.currentSampleIndex *
+      (time_until_next_log_entry +
+       (_sampleRequest.extraSample +
+        _measurementItemController.currentSampleIndex) *
            _measurementItemController.loggingIntervalS) *
       1000;
   // now that all information is assembled, send it back to the ble context
@@ -400,15 +417,19 @@ static void ReadMoreSamples(bool enumeratorReady) {
     return;
   }
   uint16_t index = 0;
+  uint16_t unreadSamples = _sampleRequest.extraSample +
+                           _sampleRequest.metadata.numberOfSamples -
+                           _sampleRequest.alreadyReadSamples * 2;
   while (_sampleEnumerator.hasMoreItems &&
          index < COUNT_OF(_sampleRequest.samplesCache) &&
-         index < (_sampleRequest.metadata.numberOfSamples / 2)) {
+         index < unreadSamples) {
     ItemStore_GetNext(
         &_sampleEnumerator,
         (ItemStore_ItemStruct_t*)&_sampleRequest.samplesCache[index++]);
   }
   ItemStore_EndEnumerate(&_sampleEnumerator, ITEM_DEF_MEASUREMENT_SAMPLE);
   _sampleRequest.enumeratorStartIndex += index;
+  _sampleRequest.alreadyReadSamples += index;
   _sampleRequest.responseData.dataLength =
       index * sizeof(ItemStore_MeasurementSample_t);
   _sampleRequest.responseData.data = (uint8_t*)_sampleRequest.samplesCache;
