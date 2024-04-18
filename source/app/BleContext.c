@@ -326,6 +326,14 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
           gBleApplicationContext.bleApplicationContextLegacy.connectionHandle =
               connectionCompleteEvent->Connection_Handle;
 
+          aci_l2cap_connection_parameter_update_req(
+              connectionCompleteEvent->Connection_Handle,
+              0x6,  // 6 * 1.2 ms
+              0x6,  // 6 * 1.2 ms,
+              connectionCompleteEvent
+                  ->Conn_Latency,  // don't change the latency
+              L2CAP_TIMEOUT_MULTIPLIER);
+
           break;  // HCI_LE_CONNECTION_COMPLETE_SUBEVT_CODE
         }
 
@@ -711,10 +719,9 @@ static void TrySendSampleFrames() {
   while ((index < _sampleNotification.sampleData.dataLength) &&
          (_sampleNotification.nrOfSamplesToTransmit >
           _sampleNotification.samplesTransmitted)) {
-    uint8_t length = 16;
-    if (index + length > _sampleNotification.sampleData.dataLength) {
-      length = _sampleNotification.sampleData.dataLength - index;
-    }
+    uint8_t length = MIN(16, 4 * (_sampleNotification.nrOfSamplesToTransmit -
+                                  _sampleNotification.samplesTransmitted));
+
     DataLoggerService_BuildDataFrame(
         _sampleNotification.txFrameBuffer,
         _sampleNotification.currentFrameIndex,
@@ -737,7 +744,10 @@ static void TrySendSampleFrames() {
         .header.id = SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES,
         .parameter2 = 0};
     Message_PublishAppMessage(&msg);
+    return;
   }
+  // reset the data to make sure that nothing is sent anymore
+  StopSendSamples();
 }
 
 static void UpdateAdvertiseSamplesEnable(bool isAdvertiseSamplesEnabled) {
