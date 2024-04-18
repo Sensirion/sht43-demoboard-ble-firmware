@@ -111,9 +111,10 @@ static bool DefaultStateCB(Message_Message_t* message) {
   if (message->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE) {
     if (message->header.id == MESSAGE_ID_PERIPHERALS_INITIALIZED) {
       // make sure that the proper device name is used
-      strncpy(_defaultSettings.deviceName, ProductionParameters_GetDeviceName(),
-              DEVICE_NAME_MAX_LEN);
-
+      uint32_t deviceId = ProductionParameters_GetUniqueDeviceId() & 0xFFFF;
+      snprintf(_defaultSettings.deviceName, DEVICE_NAME_BUFFER_LENGTH,
+               "%s %02lx%c%02lx", ProductionParameters_GetDeviceName(),
+               (deviceId >> 8), ':', (deviceId & 0xFF));
       ItemStore_BeginEnumerate(ITEM_DEF_SYSTEM_CONFIG, &_settingsEnumerator,
                                InitializeSettings);
       return true;
