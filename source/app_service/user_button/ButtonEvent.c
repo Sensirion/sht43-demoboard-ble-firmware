@@ -58,6 +58,13 @@ void ButtonEvent_PublishShortPressEvent() {
   Message_PublishAppMessage((Message_Message_t*)&msg);
 }
 
+// Send a button event with message id = BUTTON_EVENT_DOUBLE_CLICK
+void ButtonEvent_PublishDoubleClickEvent() {
+  Button_Message_t msg = {.head.category = MESSAGE_BROKER_CATEGORY_BUTTON_EVENT,
+                          .head.id = BUTTON_EVENT_DOUBLE_CLICK};
+  Message_PublishAppMessage((Message_Message_t*)&msg);
+}
+
 void ButtonEvent_TestLongPressHandler() {
   Trace_Message("received button long press\n");
 }

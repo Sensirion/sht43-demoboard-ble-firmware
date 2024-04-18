@@ -47,6 +47,9 @@ void ButtonEvent_PublishLongPressEvent();
 /// Default handler that can be registered to publish a short press.
 void ButtonEvent_PublishShortPressEvent();
 
+/// Default handler to publish a double click
+void ButtonEvent_PublishDoubleClickEvent();
+
 /// Test handler to test the LongPressEvent
 ///
 /// This handler can be registered in the button init. It will just
