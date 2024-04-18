@@ -54,11 +54,14 @@
 #define BUTTON_UNSTABLE_THRESHOLD_TM 100
 
 /// defines threshold when the button is considered to be stably pressed
-#define BUTTON_PRESSED_THRESHOLD_CNT 5
+#define BUTTON_PRESSED_THRESHOLD_CNT 3
 /// defines threshold when the button is considered to be long pressed
 #define BUTTON_LONG_PRESSED_THRESHOLD_CNT 1000  // set to ~ 2 seconds
 /// defines threshold when the button is considered to stably released
 #define BUTTON_RELEASE_THRESHOLD_CNT 3
+/// define threshold when a click is considered a single click and not a
+/// double click
+#define BUTTON_PRESS_DONE_THRESHOLD_CNT 50
 /// defines button monitoring interval
 #define MONITORING_INTERVAL_2MS 2
 /// defines a threshold where the monitoring will stop even when
@@ -77,9 +80,10 @@ static struct {
                                          ///< button monitoring FSM.
   Button_EventHandlerCb_t buttonLongPressHandler;  ///< Handler of long press
   Button_EventHandlerCb_t buttonPressHandler;      ///< Handler of short press
+  Button_EventHandlerCb_t buttonDblClickHandler;   ///< Handle double click
 } gButtonState;
 
-/// Exti Signal handler callback
+/// Exit Signal handler callback
 ///
 /// This is the entry stated of the button state. It transitions to
 /// the HandleButtonActive state.
@@ -100,6 +104,15 @@ static void Debouncing(bool buttonPressed);
 /// @param buttonPressed state of the button
 static void ButtonPressed(bool buttonPressed);
 
+/// ButtonReleased state of the button handler FSM
+///
+/// After a stable button press has been detected the
+/// the button is released again. We may now detect
+/// a double click or wait until final release.
+///
+/// @param buttonPressed state of the button
+static void ButtonReleased(bool buttonPressed);
+
 /// ButtonLongPressed state of the button handler FSM
 ///
 /// The button was pressed for more than BUTTON_LONG_PRESSED_THRESHOLD_CNT
@@ -113,11 +126,13 @@ static void ReleaseLongPressed(bool buttonPressed);
 static void StopMonitoringAndSignal(Button_EventHandlerCb_t handler);
 
 void Button_Init(Button_EventHandlerCb_t pressHandler,
-                 Button_EventHandlerCb_t longPressHandler) {
+                 Button_EventHandlerCb_t longPressHandler,
+                 Button_EventHandlerCb_t doubleClickHandler) {
   LOG_DBEUG("Button_Init()\n");
   uint32_t priMask = Concurrency_EnterCriticalSection();
   gButtonState.buttonLongPressHandler = longPressHandler;
   gButtonState.buttonPressHandler = pressHandler;
+  gButtonState.buttonDblClickHandler = doubleClickHandler;
 
   Gpio_RegisterOnExtiSignalPc10(HandleButtonIdle);
   gButtonState.timerId =
@@ -184,8 +199,25 @@ static void ButtonPressed(bool buttonPressed) {
     return;
   }
   if (gButtonState.buttonUpInRow > BUTTON_RELEASE_THRESHOLD_CNT) {
-    StopMonitoringAndSignal(gButtonState.buttonPressHandler);
+    gButtonState.buttonLowInRow = 0;
+    gButtonState.buttonUpInRow = 0;
+    gButtonState.monitoringStateHandler = ButtonReleased;
     return;
+  }
+}
+static void ButtonReleased(bool buttonPressed) {
+  if (buttonPressed) {
+    gButtonState.buttonLowInRow += 1;
+  } else {
+    gButtonState.buttonUpInRow += 1;
+  }
+  // uint16_t buttonLow = gButtonState.buttonLowInRow;
+  if (gButtonState.buttonUpInRow > BUTTON_PRESS_DONE_THRESHOLD_CNT) {
+    if (gButtonState.buttonLowInRow == 0) {
+      StopMonitoringAndSignal(gButtonState.buttonPressHandler);
+    } else {
+      StopMonitoringAndSignal(gButtonState.buttonDblClickHandler);
+    }
   }
 }
 

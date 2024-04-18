@@ -116,30 +116,30 @@ static void StartBatterySymbolBlinkTimer();
 /// Toggle the battery low symbol on the LCD screen.
 ///
 /// When the voltage level goes below 2.4 volt the battery low symbol starts blinking.
-/// This function is used to turn the symbol alernating on and off in a timer interrupt.
+/// This function is used to turn the symbol alternating on and off in a timer interrupt.
 static void ToggleBatteryLowSymbol();
 
-/// Handles the Presentation of the application while booting
+/// Handles the presentation of the application while booting.
 /// @param msg message that can be received
 /// @return bool if the message was handled, false otherwise
 static bool AppBootStateCb(Message_Message_t* msg);
 
-/// Handles the Presentation of the application for the two first time ticks
+/// Handles the presentation of the application for the two first time ticks.
 /// @param msg message that can be received
 /// @return bool if the message was handled, false otherwise
 static bool AppShowVersionStateCb(Message_Message_t* msg);
 
-/// Handles the Presentation of the application while in normal operation
+/// Handles the presentation of the application while in normal operation.
 /// @param msg message that can be received
 /// @return bool if the message was handled, false otherwise
 static bool AppNormalOperationStateCb(Message_Message_t* msg);
 
-/// Handles the presentation of application while pairing
+/// Handles the presentation of application while pairing.
 /// @param msg message that can be received
 /// @return bool if the message was handled, false otherwise
 static bool AppPairingStateCb(Message_Message_t* msg);
 
-/// Handles BatteryEvents in all states of the Presentation controller
+/// Handles BatteryEvents in all states of the Presentation controller.
 /// @param msg message that can be received
 /// @return bool if the message was handled, false otherwise
 static bool EvalBatteryEventCb(Message_Message_t* msg);
@@ -204,8 +204,11 @@ static void HandleNewSensorValues(Presentation_Controller_t* controller,
 /// @param errorCode Error code to be displayed on the screen
 static void HandleUnrecoverableError(uint32_t errorCode);
 
-/// Switch temperature unit
+/// Select temperature unit Fahrenheit
 static void SelectTemperatureUnitFahrenheit();
+
+/// Toggle between temperature unit Fahrenheit and Celsius
+static void ToggleTemperatureUnitFahrenheit();
 
 /// Set the logger function.
 /// @param enabled Flag to tell if the log is enabled or not
@@ -328,14 +331,16 @@ static bool AppNormalOperationStateCb(Message_Message_t* msg) {
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_BUTTON_EVENT) {
     if (msg->header.id == BUTTON_EVENT_LONG_PRESS) {
       _controller.bleOn = !_controller.bleOn;
+    } else if (msg->header.id == BUTTON_EVENT_DOUBLE_CLICK) {
+      ToggleTemperatureUnitFahrenheit();
     } else if (msg->header.id == BUTTON_EVENT_SHORT_PRESS) {
       if (_controller.DisplayValueRow1 == DisplayDewPointOnScreen) {
         _controller.DisplayValueRow1 = DisplayRhOnScreen;
       } else {
         _controller.DisplayValueRow1 = DisplayDewPointOnScreen;
       }
-      DisplayNormalOperationScreen(&_controller);
     }
+    DisplayNormalOperationScreen(&_controller);
     _controller.uptimeSecondsSinceUserEvent = 0;
     PublishReadoutIntervalIfChanged(SHORT_READOUT_INTERVAL_S);
     return true;
@@ -520,6 +525,11 @@ static void DisplayNormalOperationScreen(
     Presentation_Controller_t* controller) {
   // Display the measured values for temperature and humidity
 
+  Screen_DisplayFahrenheit1(false);
+  Screen_DisplayFahrenheit2(false);
+  Screen_DisplayCelsius1(false);
+  Screen_DisplayCelsius2(false);
+
   Screen_DisplaySymbolCb_t rowBottom[] = {
       Screen_DisplaySymbol8, Screen_DisplaySymbol7, Screen_DisplaySymbol6,
       Screen_DisplaySymbol5};
@@ -639,6 +649,18 @@ static void SelectTemperatureUnitFahrenheit() {
   _controller.TemperatureConversionCb = TemperatureToFahrenheit;
   _controller.DisplayTemperatureUnit1Cb = Screen_DisplayFahrenheit1;
   _controller.DisplayTemperatureUnit2Cb = Screen_DisplayFahrenheit2;
+}
+
+static void ToggleTemperatureUnitFahrenheit() {
+  if (_controller.TemperatureConversionCb == TemperatureToFahrenheit) {
+    _controller.TemperatureConversionCb = TemperatureToCelsius;
+    _controller.DisplayTemperatureUnit1Cb = Screen_DisplayCelsius1;
+    _controller.DisplayTemperatureUnit2Cb = Screen_DisplayCelsius2;
+  } else {
+    _controller.TemperatureConversionCb = TemperatureToFahrenheit;
+    _controller.DisplayTemperatureUnit1Cb = Screen_DisplayFahrenheit1;
+    _controller.DisplayTemperatureUnit2Cb = Screen_DisplayFahrenheit2;
+  }
 }
 
 static float TemperatureToFahrenheit(float temperatureC) {

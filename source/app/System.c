@@ -150,7 +150,8 @@ void System_Init(void) {
   HciTransport_Init(BleContext_StartBluetoothApp);
 
   Button_Init(ButtonEvent_PublishShortPressEvent,
-              ButtonEvent_PublishLongPressEvent);
+              ButtonEvent_PublishLongPressEvent,
+              ButtonEvent_PublishDoubleClickEvent);
 
   LOG_DEBUG("%s\n", "} SUCCESS!\n");
 
