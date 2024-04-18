@@ -719,10 +719,9 @@ static void TrySendSampleFrames() {
   while ((index < _sampleNotification.sampleData.dataLength) &&
          (_sampleNotification.nrOfSamplesToTransmit >
           _sampleNotification.samplesTransmitted)) {
-    uint8_t length = 16;
-    if (index + length > _sampleNotification.sampleData.dataLength) {
-      length = _sampleNotification.sampleData.dataLength - index;
-    }
+    uint8_t length = MIN(16, 4 * (_sampleNotification.nrOfSamplesToTransmit -
+                                  _sampleNotification.samplesTransmitted));
+
     DataLoggerService_BuildDataFrame(
         _sampleNotification.txFrameBuffer,
         _sampleNotification.currentFrameIndex,
@@ -745,7 +744,10 @@ static void TrySendSampleFrames() {
         .header.id = SERVICE_REQUEST_MESSAGE_ID_GET_NEXT_SAMPLES,
         .parameter2 = 0};
     Message_PublishAppMessage(&msg);
+    return;
   }
+  // reset the data to make sure that nothing is sent anymore
+  StopSendSamples();
 }
 
 static void UpdateAdvertiseSamplesEnable(bool isAdvertiseSamplesEnabled) {
