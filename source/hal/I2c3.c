@@ -122,10 +122,11 @@ static void InitDriver(I2C_HandleTypeDef* i2c) {
   i2c->Instance = I2C3;
   // I2c clock frequency: Set the I2C_TIMINGR (the I2C timing register).
   // The value has been generated with the STM32CubeMX clock generator.
-  // Target I2C SCL clock: 100 kHz
-  // setting from cube 0x00303D5B when using HSI as clock
-  // Measured I2C clock with this configuration: 100 kHz +/- 20 %
-  i2c->Init.Timing = 0x00303D5B;
+  // Target I2C SCL clock: 400 kHz (I2c fast)
+  // Setting from cube 0x0010061A when using HSI as clock
+  //
+  // Measured I2C clock with this configuration: ~350 kHz%
+  i2c->Init.Timing = 0x0010061A;
   i2c->Init.OwnAddress1 = 0;
   i2c->Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   i2c->Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
