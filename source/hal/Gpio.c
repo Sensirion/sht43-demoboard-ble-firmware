@@ -92,6 +92,27 @@ bool Gpio_IsPc10Set() {
   return HAL_GPIO_ReadPin(UserButton_GPIO_Port, UserButton_Pin) == GPIO_PIN_SET;
 }
 
+void Gpio_EnableDebugPins() {
+  GPIO_InitTypeDef gpioConfig = {0};
+  gpioConfig.Pin = DEBUG_PIN_PB11;
+  gpioConfig.Mode = GPIO_MODE_OUTPUT_PP;
+  gpioConfig.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &gpioConfig);
+  HAL_GPIO_WritePin(GPIOB, DEBUG_PIN_PB11, GPIO_PIN_RESET);
+
+  gpioConfig.Pin = DEBUG_PIN_PA12;
+  HAL_GPIO_Init(GPIOA, &gpioConfig);
+  HAL_GPIO_WritePin(GPIOA, DEBUG_PIN_PA12, GPIO_PIN_RESET);
+}
+
+void Gpio_SetDebugPinB11(bool value) {
+  HAL_GPIO_WritePin(GPIOB, DEBUG_PIN_PB11, (GPIO_PinState)value);
+}
+
+void Gpio_SetDebugPinA12(bool value) {
+  HAL_GPIO_WritePin(GPIOA, DEBUG_PIN_PA12, (GPIO_PinState)value);
+}
+
 /// Interrupt handler for external gpio interrupt
 /// overrides weak definition name must not be changed
 void EXTI15_10_IRQHandler() {
