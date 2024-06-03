@@ -37,7 +37,7 @@
 #include "app/Presentation.h"
 #include "app_service/item_store/ItemStore.h"
 #include "app_service/timer_server/TimerServer.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 /// Parameter of the timerAddItem test
 static SysTest_TestMessageParameter_t _timerAddItemParameter;
@@ -122,23 +122,22 @@ static void OnTimerElapsed() {
 
 static void EnumeratorReadToEnd(bool status) {
   if (!status) {
-    Trace_Message("Enumerator was not initialized properly!");
+    LOG_INFO("Enumerator was not initialized properly!");
     ItemStore_EndEnumerate(&_enumerator, _itemStoreItem);
     return;
   }
   while (_enumerator.hasMoreItems) {
     ItemStore_GetNext(&_enumerator, &_testItemBuffer);
     _numberOfItemsToRead++;
-    Trace_Message("read items = %i\n", _numberOfItemsToRead);
+    LOG_INFO("read items = %i\n", _numberOfItemsToRead);
   }
-  Trace_Message("\n=>read to end done: read items = %i\n",
-                _numberOfItemsToRead);
+  LOG_INFO("\n=>read to end done: read items = %i", _numberOfItemsToRead);
   ItemStore_EndEnumerate(&_enumerator, _itemStoreItem);
 }
 
 static void EnumeratorReadCount(bool status) {
   if (!status) {
-    Trace_Message("Enumerator was not initialized properly!\n");
+    LOG_INFO("Enumerator was not initialized properly!");
     ItemStore_EndEnumerate(&_enumerator, _itemStoreItem);
     return;
   }
@@ -146,10 +145,8 @@ static void EnumeratorReadCount(bool status) {
   while (_enumerator.hasMoreItems && readItems < _numberOfItemsToRead) {
     ItemStore_GetNext(&_enumerator, &_testItemBuffer);
     readItems++;
-    Trace_Message("read item; remaining = %i\n",
-                  _numberOfItemsToRead - readItems);
+    LOG_INFO("read item; remaining = %i\n", _numberOfItemsToRead - readItems);
   }
-  Trace_Message("\n=>read count from 0 done: read items = %i\n",
-                _numberOfItemsToRead);
+  LOG_INFO("\n=>read count from 0 done: read items = %i", _numberOfItemsToRead);
   ItemStore_EndEnumerate(&_enumerator, _itemStoreItem);
 }

@@ -48,12 +48,9 @@
 #include "tl.h"
 // clang-format on
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 #include <stdbool.h>
-
-///Define Trace message
-#define LOG_DEBUG(...) Trace_Message(__VA_ARGS__)
 
 /// Size of the event pool on the Memory Manager
 #define POOL_SIZE                    \
@@ -219,7 +216,7 @@ static void OnSystemEventErrorCb(TL_AsynchEvt_t* sysEvent) {
   SCHI_SystemErrCode_t sysErrorCode =
       *((SCHI_SystemErrCode_t*)sysEvent->payload);
 
-  LOG_DEBUG("System error %x received\n", sysErrorCode);
+  LOG_ERROR("System error %x received\n", sysErrorCode);
 }
 
 static void OnSystemEventReadyProcessingCb(tSHCI_UserEvtRxParam* userEvent) {
@@ -234,7 +231,7 @@ static void OnSystemEventReadyProcessingCb(tSHCI_UserEvtRxParam* userEvent) {
   // Read the firmware version of both the wireless firmware and the FUS
   SHCI_GetWirelessFwInfo(&wirelessInfo);
   if (!CheckC2FwVersions(&wirelessInfo)) {
-    Trace_Message("Unsupported Firmware version");
+    LOG_INFO("Unsupported Firmware version");
   }
 
   sysReadyEvent = (SHCI_C2_Ready_Evt_t*)sysEvent->payload;

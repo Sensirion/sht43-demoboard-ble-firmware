@@ -42,7 +42,7 @@
 #include "svc/Inc/dis.h"
 #include "tl.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 /// structure to hold the handles for gatt service and its characteristics
 PLACE_IN_SECTION("BLE_DRIVER_CONTEXT") static struct _tService {

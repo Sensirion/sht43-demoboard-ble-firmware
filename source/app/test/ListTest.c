@@ -38,7 +38,7 @@
 
 #include "utility/ErrorHandler.h"
 #include "utility/collection/LinkedList.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 /// The node type used in this list test
 typedef struct _tListTest_TestNode {
@@ -70,7 +70,7 @@ void ListTest_InsertRemoveElements() {
   for (uint8_t i = 3; i < 7; i++) {
     LinkedList_Remove(&gList, (LinkedList_Node_t*)&gNode[i]);
   }
-  Trace_Message("Nr of elements in queue %i", gList.nrOfElements);
+  LOG_INFO("Nr of elements in queue %i", gList.nrOfElements);
   LinkedList_ForEach(&gList, PrintNodeValue);
 
   LinkedList_Iterator_t iterator;
@@ -84,6 +84,6 @@ void ListTest_InsertRemoveElements() {
 
 static bool PrintNodeValue(LinkedList_Node_t* node) {
   ListTest_TestNode_t* testNode = (ListTest_TestNode_t*)node;
-  Trace_Message("processing node with value %i", testNode->value);
+  LOG_INFO("processing node with value %i", testNode->value);
   return true;
 }

@@ -38,7 +38,7 @@
 #ifndef BLE_HELPER_H
 #define BLE_HELPER_H
 
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 #include <stdint.h>
 
@@ -48,19 +48,19 @@
 
 /// log a case label
 /// @param x a case label to be logged
-#define LOG_DEBUG_CASE(x) Trace_Message("case " QUOTE(x) "\n")
+#define LOG_DEBUG_CASE(x) LOG_DEBUG("case " QUOTE(x) "\n")
 
 /// log the status of a call or event
 #define LOG_DEBUG_CALLSTATUS(...) \
-  Trace_Message(BleHelper_FormatCallStatus(__VA_ARGS__))
+  LOG_DEBUG(BleHelper_FormatCallStatus(__VA_ARGS__))
 
 /// log a blue tooth address
 #define LOG_DEBUG_BLUETOOTH_ADDR(...) \
-  Trace_Message(BleHelper_FormatMacAddress(__VA_ARGS__))
+  LOG_DEBUG(BleHelper_FormatMacAddress(__VA_ARGS__))
 
 /// log the connection parameters
 #define LOG_DEBUG_CONNECTION_PARAMS(...) \
-  Trace_Message(BleHelper_FormatConnectionParameters(__VA_ARGS__))
+  LOG_DEBUG(BleHelper_FormatConnectionParameters(__VA_ARGS__))
 
 /// Helper function to format the name of a call and its result.
 ///

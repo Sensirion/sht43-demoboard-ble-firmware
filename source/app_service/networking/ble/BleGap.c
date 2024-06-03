@@ -40,7 +40,7 @@
 #include "BleHelper.h"
 #include "utility/AppDefines.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 /// GAP_APPEARANCE configuration value
 #define BLE_APPEARANCE_MULTISENSOR 0x0552
@@ -181,7 +181,7 @@ void BleGap_AdvertiseRequest(BleTypes_ApplicationContext_t* applicationContext,
 void BleGap_AdvertiseCancel(BleTypes_ApplicationContext_t* applicationContext) {
   if (applicationContext->deviceConnectionStatus !=
       BLE_INTERFACE_CONNECTED_SERVER) {
-    tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
+    [[maybe_unused]] tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
     ret = aci_gap_set_non_discoverable();
     applicationContext->deviceConnectionStatus = BLE_INTERFACE_IDLE;
     LOG_DEBUG_CALLSTATUS("aci_gap_set_non_discoverable()", ret);

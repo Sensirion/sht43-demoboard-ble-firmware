@@ -43,7 +43,6 @@
 #include "IrqPrio.h"
 #include "hal/Gpio.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
 
 /// Initializes the Global MSP.
 void HAL_MspInit(void) {

@@ -41,7 +41,7 @@
 #include "stm32_lpm.h"
 #include "utility/AppDefines.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 #include <stdbool.h>
 
@@ -117,7 +117,7 @@ void I2c3_Read(uint8_t address,
 }
 
 static void InitDriver(I2C_HandleTypeDef* i2c) {
-  Trace_Message("Initialize I2C ...");
+  LOG_DEBUG("Initialize I2C ...");
   ASSERT(i2c != 0);
   i2c->Instance = I2C3;
   // I2c clock frequency: Set the I2C_TIMINGR (the I2C timing register).
@@ -145,7 +145,7 @@ static void InitDriver(I2C_HandleTypeDef* i2c) {
     ErrorHandler_RecoverableError(ERROR_CODE_HARDWARE);
   }
 
-  Trace_Message("SUCCESS!\n");
+  LOG_DEBUG("%s", "SUCCESS!\n");
 }
 
 /// Handles termination of master Tx complete

@@ -38,7 +38,6 @@
 #include "app_service/screen/Screen.h"
 #include "app_service/user_button/Button.h"
 #include "utility/log/Log.h"
-#include "utility/log/Trace.h"
 
 /// Array with all **DisplaySymbol** functions. This data is used
 /// within different tests.
@@ -50,12 +49,12 @@ Screen_DisplaySymbolCb_t _displaySymbols[] = {
 
 void ScreenTest_TestDisplaySymbol(SysTest_TestMessageParameter_t param) {
   if (param.byteParameter[0] >= 8) {
-    LOG_DEBUG("Invalid function selection %i", param.byteParameter[0] + 1);
+    LOG_INFO("Invalid function selection %i", param.byteParameter[0] + 1);
     return;
   }
   uint8_t symbolIndex = param.byteParameter[0];
   if (param.byteParameter[1] > 15) {
-    LOG_DEBUG("Invalid number selection %i", param.byteParameter[1]);
+    LOG_INFO("Invalid number selection %i", param.byteParameter[1]);
     return;
   }
   if (param.byteParameter[2] > 0) {
@@ -77,7 +76,7 @@ void ScreenTest_TestSegmentBitmaps(SysTest_TestMessageParameter_t _) {
 
   Screen_UpdatePendingRequests();
   for (uint8_t i = 0; i < 16; i++) {
-    Trace_Message(" display symbol %i\n", i);
+    LOG_INFO(" display symbol %i\n", i);
     Screen_DisplaySymbol5(SCREEN_I);
     Screen_DisplaySymbol6(SCREEN_d);
     Screen_DisplayPoint3(false);

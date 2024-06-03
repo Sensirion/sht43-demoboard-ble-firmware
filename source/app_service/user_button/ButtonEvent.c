@@ -39,7 +39,7 @@
 #include "app_service/timer_server/TimerServer.h"
 #include "stm32wbxx_ll_gpio.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -66,9 +66,9 @@ void ButtonEvent_PublishDoubleClickEvent() {
 }
 
 void ButtonEvent_TestLongPressHandler() {
-  Trace_Message("received button long press\n");
+  LOG_DEBUG("received button long press");
 }
 
 void ButtonEvent_TestButtonPressHandler() {
-  Trace_Message("received button press\n");
+  LOG_DEBUG("received button press");
 }

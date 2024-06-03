@@ -37,7 +37,7 @@
 
 #include "hal/Qspi.h"
 #include "stm32_seq.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 #include "utility/scheduler/Scheduler.h"
 
 #include <stdint.h>
@@ -65,10 +65,10 @@ void QspiTest_W25Q80ReadUuid() {
                         QSPI_INSTRUCTION_DATA_SIZE_FOUR_BYTE, 8,
                         QspiInstructionReadResponseCb);
   UTIL_SEQ_WaitEvt(1 << SCHEDULER_EVENT_FLASH_OP_COMPLETE);
-  Trace_Message("Uuid = %02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x\n",
-                gTestDataBuffer[0], gTestDataBuffer[1], gTestDataBuffer[2],
-                gTestDataBuffer[3], gTestDataBuffer[4], gTestDataBuffer[5],
-                gTestDataBuffer[6], gTestDataBuffer[7]);
+  LOG_INFO("Uuid = %02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x\n",
+           gTestDataBuffer[0], gTestDataBuffer[1], gTestDataBuffer[2],
+           gTestDataBuffer[3], gTestDataBuffer[4], gTestDataBuffer[5],
+           gTestDataBuffer[6], gTestDataBuffer[7]);
 }
 
 void QspiTest_W25Q80EnterPowerDown() {
@@ -90,7 +90,7 @@ void QspiTest_W25Q80WriteEnable() {
                         QSPI_INSTRUCTION_DATA_SIZE_NONE, 0,
                         QspiSignalFlashOperationCompleteCb);
   UTIL_SEQ_WaitEvt(1 << SCHEDULER_EVENT_FLASH_OP_COMPLETE);
-  Trace_Message("Write enable done\n");
+  LOG_INFO("Write enable done\n");
 }
 
 /// Read status register 1
@@ -102,7 +102,7 @@ void QspiTest_W25Q80ReadStatusRegister1() {
                         QspiSignalFlashOperationCompleteCb);
   UTIL_SEQ_WaitEvt(1 << SCHEDULER_EVENT_FLASH_OP_COMPLETE);
   gStatusReg1 = gTestDataBuffer[0];
-  Trace_Message("Status register 1 = %i\n", gStatusReg1);
+  LOG_INFO("Status register 1 = %i\n", gStatusReg1);
 }
 
 /// Read status register 2
@@ -114,7 +114,7 @@ void QspiTest_W25Q80ReadStatusRegister2() {
                         QspiInstructionReadResponseCb);
   UTIL_SEQ_WaitEvt(1 << SCHEDULER_EVENT_FLASH_OP_COMPLETE);
   gStatusReg2 = gTestDataBuffer[0];
-  Trace_Message("Status register 2 = %i\n", gStatusReg2);
+  LOG_INFO("Status register 2 = %i\n", gStatusReg2);
 }
 
 /// Write status register 1 and 2
@@ -138,9 +138,9 @@ void QspiTest_W25Q80FastRead() {
   UTIL_SEQ_WaitEvt(1 << SCHEDULER_EVENT_FLASH_OP_COMPLETE);
   for (uint16_t i = 0; i < 256; i++) {
     if (i % 16 == 0 && i > 0) {
-      Trace_Message("%02x\n", gTestDataBuffer[i]);
+      LOG_INFO("%02x\n", gTestDataBuffer[i]);
     } else {
-      Trace_Message("%02x", gTestDataBuffer[i]);
+      LOG_INFO("%02x", gTestDataBuffer[i]);
     }
   }
 }
@@ -168,9 +168,9 @@ static void QspiSignalFlashOperationCompleteCb() {
 }
 
 void QspiTest_RequestReleaseRequest() {
-  Trace_Message("uuid before release\n\t");
+  LOG_INFO("uuid before release\n\t");
   QspiTest_W25Q80ReadUuid();
   Qspi_Release();
-  Trace_Message("uuid after release\n\t");
+  LOG_INFO("uuid after release\n\t");
   QspiTest_W25Q80ReadUuid();
 }

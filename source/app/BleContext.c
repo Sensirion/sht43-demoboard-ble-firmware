@@ -252,13 +252,14 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
 
   evt_le_meta_event* metaEvent;
   evt_blecore_aci* bleCoreEvent;
-  tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
+  [[maybe_unused]] tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
   hci_le_connection_complete_event_rp0* connectionCompleteEvent;
   hci_disconnection_complete_event_rp0* disconnectedCompleteEvent;
-  hci_le_connection_update_complete_event_rp0* connectionUpdateCompleteEvent;
+  [[maybe_unused]] hci_le_connection_update_complete_event_rp0*
+      connectionUpdateCompleteEvent;
 
   // PAIRING
-  aci_gap_pairing_complete_event_rp0* pairingComplete;
+  [[maybe_unused]] aci_gap_pairing_complete_event_rp0* pairingComplete;
 
   hci_event_pckt* eventPckt =
       (hci_event_pckt*)((hci_uart_pckt*)notificationPacket)->data;
