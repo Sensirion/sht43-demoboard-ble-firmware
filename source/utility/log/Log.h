@@ -61,11 +61,11 @@
 
 /// clang tidy is not aware of the proper compiler architecture and will
 /// produce warnings
-#define LOG_ERROR(message, ...) Trace_Message(message, __VA_ARGS__)
+#define LOG_ERROR(message, ...) Trace_Message(message, ##__VA_ARGS__)  // NOLINT
 
 /// clang tidy is not aware of the proper compiler architecture and will
 /// produce warnings
-#define LOG_INFO(message, ...) Trace_Message(message, __VA_ARGS__)
+#define LOG_INFO(message, ...) Trace_Message(message, ##__VA_ARGS__)  // NOLINT
 
 #else  // no static code analysis
 

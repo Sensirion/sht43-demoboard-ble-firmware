@@ -40,7 +40,7 @@
 #include "IrqPrio.h"
 #include "stm32wbxx_ll_rtc.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 #include <stdbool.h>
 
@@ -81,7 +81,7 @@ RTC_HandleTypeDef* Rtc_Instance() {
 }
 
 static void InitDriver(RTC_HandleTypeDef* rtc) {
-  Trace_Message("Initialize RTC ...");
+  LOG_DEBUG("Initialize RTC ...");
   ASSERT(rtc != 0);
 
   rtc->Instance = RTC;
@@ -104,7 +104,7 @@ static void InitDriver(RTC_HandleTypeDef* rtc) {
   // Enable RTC registers write protection
   LL_RTC_EnableWriteProtection(RTC);
 
-  Trace_Message("SUCCESS!\n");
+  LOG_DEBUG("SUCCESS!\n");
 }
 
 /// RTC MSP Initialization

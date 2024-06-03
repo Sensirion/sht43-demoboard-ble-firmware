@@ -35,10 +35,7 @@
 
 #include "stm32_seq.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
-
-/// helper macro; this will be replaced when the log is implemented
-#define LOG_DEBUG(...) Trace_Message(__VA_ARGS__)
+#include "utility/log/Log.h"
 
 void MessageBroker_Create(MessageBroker_Broker_t* broker,
                           uint64_t* messageBuffer,

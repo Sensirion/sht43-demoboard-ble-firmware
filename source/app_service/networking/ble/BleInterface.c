@@ -55,7 +55,7 @@
 #include "tl.h"
 #include "utility/AppDefines.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 #include "utility/scheduler/Scheduler.h"
 
 #define FAST_ADV_TIMEOUT (30 * 1000 * 1000 / CFG_TS_TICK_VAL)     ///< 30s
@@ -200,7 +200,8 @@ static void HciInit() {
 }
 
 static void HciGapGattInit(BleTypes_ApplicationContext_t* appContext) {
-  Trace_Message("HCI GAP init begin\n");
+  // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
+  LOG_DEBUG("HCI GAP init begin");
   BleTypes_BleDeviceAddress_t srdBdAddr = {.addressWords = {0}};
   tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
 
@@ -254,5 +255,6 @@ static void HciGapGattInit(BleTypes_ApplicationContext_t* appContext) {
   ret = hci_le_set_default_phy(ALL_PHYS_PREFERENCE, TX_1M, RX_1M);
   LOG_DEBUG_CALLSTATUS("set_default_pyh()", ret);
 
-  Trace_Message("HCI GAP init end\n");
+  LOG_DEBUG("HCI GAP init end");
+  // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 }

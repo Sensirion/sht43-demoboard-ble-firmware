@@ -40,7 +40,7 @@
 #include "BleHelper.h"
 #include "utility/AppDefines.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 /// GAP_APPEARANCE configuration value
 #define BLE_APPEARANCE_MULTISENSOR 0x0552
@@ -64,6 +64,7 @@ static AdvertiseInterval_t _advertiseIntervalSpec[] = {
                                       .max = SHORT_ADVERTISE_INTERVAL_MAX}};
 
 void BleGap_Init(BleTypes_ApplicationContext_t* bleApplicationContext) {
+  // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
   uint8_t role = GAP_PERIPHERAL_ROLE;
   tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
   uint16_t gapServiceHandle;
@@ -136,10 +137,12 @@ void BleGap_Init(BleTypes_ApplicationContext_t* bleApplicationContext) {
       bleApplicationContext->bleApplicationContextLegacy.bleSecurityParam
           .ioCapability);
   LOG_DEBUG_CALLSTATUS("aci_gap_set_io_capability()", ret);
+  // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 }
 
 void BleGap_AdvertiseRequest(BleTypes_ApplicationContext_t* applicationContext,
                              BleTypes_AdvertisementMode_t mode) {
+  // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
   tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
 
   if ((applicationContext->deviceConnectionStatus ==
@@ -176,14 +179,18 @@ void BleGap_AdvertiseRequest(BleTypes_ApplicationContext_t* applicationContext,
         (uint8_t*)applicationContext->advertisementData);
     LOG_DEBUG_CALLSTATUS("aci_gap_update_adv_data()", ret);
   }
+  // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 }
 
 void BleGap_AdvertiseCancel(BleTypes_ApplicationContext_t* applicationContext) {
+  // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
   if (applicationContext->deviceConnectionStatus !=
       BLE_INTERFACE_CONNECTED_SERVER) {
     tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
+    UNUSED(ret);
     ret = aci_gap_set_non_discoverable();
     applicationContext->deviceConnectionStatus = BLE_INTERFACE_IDLE;
     LOG_DEBUG_CALLSTATUS("aci_gap_set_non_discoverable()", ret);
   }
+  // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 }

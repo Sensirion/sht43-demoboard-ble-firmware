@@ -46,16 +46,13 @@
 #include "stm32_lpm.h"
 #include "stm32wbxx_hal.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 #include "utility/scheduler/MessageId.h"
 
 #include <string.h>
 
 /// Defines the maximum error retries
 #define MAX_CONSECUTIVE_ERRORS 3
-
-/// Helper macro for information logging
-#define LOG_INFO(...) Trace_Message(__VA_ARGS__)
 
 /// we allow only for one active reminder!
 Message_Message_t _reminder;

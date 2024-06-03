@@ -114,7 +114,7 @@ static bool DefaultStateCB(Message_Message_t* message) {
       uint32_t deviceId = ProductionParameters_GetUniqueDeviceId() & 0xFFFF;
       snprintf(_defaultSettings.deviceName, DEVICE_NAME_BUFFER_LENGTH,
                "%s %02lx%c%02lx", ProductionParameters_GetDeviceName(),
-               (deviceId >> 8), ':', (deviceId & 0xFF));
+               (deviceId >> 8), ':', (deviceId & 0xFF));  // NOLINT
       ItemStore_BeginEnumerate(ITEM_DEF_SYSTEM_CONFIG, &_settingsEnumerator,
                                InitializeSettings);
       return true;

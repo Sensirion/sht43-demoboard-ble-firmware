@@ -39,7 +39,7 @@
 
 #include "app_conf.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 #include <stdbool.h>
 
@@ -59,7 +59,7 @@ IPCC_HandleTypeDef* Ipcc_Instance() {
 }
 
 static void InitDriver(IPCC_HandleTypeDef* ipcc) {
-  Trace_Message("Initialize IPCC ...");
+  LOG_DEBUG("Initialize IPCC ...");
   ASSERT(ipcc != 0);
   ipcc->Instance = IPCC;
   if (HAL_IPCC_Init(ipcc) != HAL_OK) {
@@ -96,7 +96,7 @@ static void InitDriver(IPCC_HandleTypeDef* ipcc) {
   // Enable IPCC(36), HSEM(38) wakeup interrupts on CPU1
   LL_EXTI_EnableIT_32_63(LL_EXTI_LINE_36 | LL_EXTI_LINE_38);
 
-  Trace_Message("SUCCESS!\n");
+  LOG_DEBUG("SUCCESS!\n");
 }
 
 /// Handler for IPCC RX occupied interrupt.

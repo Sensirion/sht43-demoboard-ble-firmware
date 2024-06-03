@@ -42,13 +42,10 @@
 #include "stm32wbxx_ll_gpio.h"
 #include "utility/ErrorHandler.h"
 #include "utility/concurrency/Concurrency.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 #include <stdbool.h>
 #include <stdint.h>
-
-/// debug messages; will be moved to log utility
-#define LOG_DBEUG(...) Trace_Message(__VA_ARGS__)
 
 /// defines threshold when debouncing shall stop
 #define BUTTON_UNSTABLE_THRESHOLD_TM 100
@@ -128,7 +125,7 @@ static void StopMonitoringAndSignal(Button_EventHandlerCb_t handler);
 void Button_Init(Button_EventHandlerCb_t pressHandler,
                  Button_EventHandlerCb_t longPressHandler,
                  Button_EventHandlerCb_t doubleClickHandler) {
-  LOG_DBEUG("Button_Init()\n");
+  LOG_DEBUG("Button_Init()");
   uint32_t priMask = Concurrency_EnterCriticalSection();
   gButtonState.buttonLongPressHandler = longPressHandler;
   gButtonState.buttonPressHandler = pressHandler;
@@ -141,7 +138,6 @@ void Button_Init(Button_EventHandlerCb_t pressHandler,
 }
 
 static void HandleButtonIdle() {
-  LOG_DBEUG("ButtonIdle()\n");
   gButtonState.buttonLowInRow = 0;
   gButtonState.buttonUpInRow = 0;
   gButtonState.monitoringTime = 0;

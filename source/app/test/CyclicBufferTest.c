@@ -38,7 +38,7 @@
 
 #include "utility/ErrorHandler.h"
 #include "utility/collection/CyclicBuffer.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 /// test queue
 static CyclicBuffer_Buffer_t gTestQueue;
@@ -50,10 +50,10 @@ void CyclicBufferTest_InsertRemoveElements() {
   CyclicBuffer_Create(&gTestQueue, gBufferStorage, 8);
   for (uint8_t i = 0; i < 32; i++) {
     uint64_t value = i;
-    Trace_Message("insert element into queue %i", i);
+    LOG_INFO("insert element into queue %i", i);
     ASSERT(CyclicBuffer_Enqueue(&gTestQueue, &value));
     ASSERT(CyclicBuffer_Dequeue(&gTestQueue, &value));
-    Trace_Message("got element from queue %i", (int)value);
+    LOG_INFO("got element from queue %i", (int)value);
     ASSERT(CyclicBuffer_IsEmpty(&gTestQueue));
   }
 }

@@ -38,7 +38,7 @@
 #include "Qspi.h"
 
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 #include <stdbool.h>
 #include <string.h>

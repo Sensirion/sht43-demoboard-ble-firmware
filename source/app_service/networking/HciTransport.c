@@ -48,12 +48,9 @@
 #include "tl.h"
 // clang-format on
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 #include <stdbool.h>
-
-///Define Trace message
-#define LOG_DEBUG(...) Trace_Message(__VA_ARGS__)
 
 /// Size of the event pool on the Memory Manager
 #define POOL_SIZE                    \
@@ -182,34 +179,6 @@ static void OnSystemUserEventReceivedCb(void* payload) {
       OnSystemEventErrorCb(sysEvent);
       break;
 
-    case SHCI_SUB_EVT_BLE_NVM_RAM_UPDATE:
-      LOG_DEBUG("BLE NVM RAM has been updated by CPU2:\n");
-      LOG_DEBUG(
-          "     - StartAddress = %lx , Size = %ld\n",
-          ((SHCI_C2_BleNvmRamUpdate_Evt_t*)sysEvent->payload)->StartAddress,
-          ((SHCI_C2_BleNvmRamUpdate_Evt_t*)sysEvent->payload)->Size);
-      break;
-
-    case SHCI_SUB_EVT_NVM_START_WRITE:
-      LOG_DEBUG(
-          "Start NVM write : NumberOfWords = %ld\n",
-          ((SHCI_C2_NvmStartWrite_Evt_t*)sysEvent->payload)->NumberOfWords);
-      break;
-
-    case SHCI_SUB_EVT_NVM_END_WRITE:
-      LOG_DEBUG("End NVM write\n");
-      break;
-
-    case SHCI_SUB_EVT_NVM_START_ERASE:
-      LOG_DEBUG(
-          "Start NVM erase : NumberOfSectors = %ld\n",
-          ((SHCI_C2_NvmStartErase_Evt_t*)sysEvent->payload)->NumberOfSectors);
-      break;
-
-    case SHCI_SUB_EVT_NVM_END_ERASE:
-      LOG_DEBUG("End NVM erase\n");
-      break;
-
     default:
       break;
   }
@@ -219,7 +188,7 @@ static void OnSystemEventErrorCb(TL_AsynchEvt_t* sysEvent) {
   SCHI_SystemErrCode_t sysErrorCode =
       *((SCHI_SystemErrCode_t*)sysEvent->payload);
 
-  LOG_DEBUG("System error %x received\n", sysErrorCode);
+  LOG_ERROR("System error %x received\n", sysErrorCode);
 }
 
 static void OnSystemEventReadyProcessingCb(tSHCI_UserEvtRxParam* userEvent) {
@@ -234,7 +203,7 @@ static void OnSystemEventReadyProcessingCb(tSHCI_UserEvtRxParam* userEvent) {
   // Read the firmware version of both the wireless firmware and the FUS
   SHCI_GetWirelessFwInfo(&wirelessInfo);
   if (!CheckC2FwVersions(&wirelessInfo)) {
-    Trace_Message("Unsupported Firmware version");
+    LOG_INFO("Unsupported Firmware version");
   }
 
   sysReadyEvent = (SHCI_C2_Ready_Evt_t*)sysEvent->payload;
@@ -291,11 +260,12 @@ static bool CheckC2FwVersions(WirelessFwInfo_t* fwInfo) {
   asExpected = asExpected && fwInfo->VersionMajor == COPRO_BINARY_VERSION_MAJOR;
   asExpected = asExpected && fwInfo->VersionMinor == COPRO_BINARY_VERSION_MINOR;
 
-  LOG_DEBUG("Wireless Firmware version %d.%d.%d\n", fwInfo->VersionMajor,
-            fwInfo->VersionMinor, fwInfo->VersionSub);
-  LOG_DEBUG("Wireless Firmware build %d\n", fwInfo->VersionReleaseType);
-  LOG_DEBUG("FUS version %d.%d.%d\n", fwInfo->FusVersionMajor,
-            fwInfo->FusVersionMinor, fwInfo->FusVersionSub);
+  LOG_INFO("BLE Stack version %d.%d.%d\n", fwInfo->VersionMajor,
+           fwInfo->VersionMinor, fwInfo->VersionSub);
+  LOG_INFO("BLE Stack build %d\n", fwInfo->VersionReleaseType);
+  LOG_INFO("Firmware update service version %d.%d.%d\n",
+           fwInfo->FusVersionMajor, fwInfo->FusVersionMinor,
+           fwInfo->FusVersionSub);
 
   return asExpected;
 }

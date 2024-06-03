@@ -42,7 +42,6 @@
 #include "svc/Inc/dis.h"
 #include "tl.h"
 #include "utility/ErrorHandler.h"
-#include "utility/log/Trace.h"
 
 #include <math.h>
 

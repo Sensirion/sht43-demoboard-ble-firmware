@@ -37,10 +37,10 @@
 #include "TraceTest.h"
 
 #include "hal/Uart.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 
 void TraceTest_TraceWithReleaseAndReinit() {
-  Trace_Message("hello %i\n", 1);
+  LOG_INFO("hello %i\n", 1);
   Uart_Release();
-  Trace_Message("hello %i\n", 2);
+  LOG_INFO("hello %i\n", 2);
 }

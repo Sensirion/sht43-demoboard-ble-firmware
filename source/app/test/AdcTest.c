@@ -36,7 +36,7 @@
 
 #include "hal/Adc.h"
 #include "stm32_seq.h"
-#include "utility/log/Trace.h"
+#include "utility/log/Log.h"
 #include "utility/scheduler/Scheduler.h"
 
 /// receive vbat from ISR
@@ -51,6 +51,6 @@ void AdcTest_MeasureMultipleTimes() {
 }
 
 static void GetVbat(uint32_t vbat) {
-  Trace_Message("measured vbat = %i", vbat);
+  LOG_INFO("measured vbat = %lu", vbat);
   UTIL_SEQ_SetEvt(1 << SCHEDULER_EVENT_FLASH_OP_COMPLETE);
 }
