@@ -249,17 +249,19 @@ void BleContext_StartBluetoothApp() {
 /// @return None
 SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
     void* notificationPacket) {  //NOLINT
-
+  // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
   evt_le_meta_event* metaEvent;
   evt_blecore_aci* bleCoreEvent;
-  [[maybe_unused]] tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
+  tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
+  UNUSED(ret);  // suppress compiler warning and still work with clang-tidy
   hci_le_connection_complete_event_rp0* connectionCompleteEvent;
   hci_disconnection_complete_event_rp0* disconnectedCompleteEvent;
-  [[maybe_unused]] hci_le_connection_update_complete_event_rp0*
-      connectionUpdateCompleteEvent;
+  hci_le_connection_update_complete_event_rp0* connectionUpdateCompleteEvent;
+  UNUSED(connectionUpdateCompleteEvent);
 
   // PAIRING
-  [[maybe_unused]] aci_gap_pairing_complete_event_rp0* pairingComplete;
+  aci_gap_pairing_complete_event_rp0* pairingComplete;
+  UNUSED(pairingComplete);
 
   hci_event_pckt* eventPckt =
       (hci_event_pckt*)((hci_uart_pckt*)notificationPacket)->data;
@@ -436,7 +438,7 @@ SVCCTL_UserEvtFlowStatus_t SVCCTL_App_Notification(
     default:
       break;
   }
-
+  // NOLINTEND(clang-analyzer-deadcode.DeadStores)
   return (SVCCTL_UserEvtFlowEnable);
 }
 

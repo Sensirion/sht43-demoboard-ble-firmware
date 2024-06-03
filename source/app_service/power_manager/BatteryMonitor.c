@@ -42,13 +42,13 @@
 #include <stdbool.h>
 
 /// slope of the battery level curve in the range 100% - 25%
-#define BATTERY_LEVEL_SLOPE_1 0.3
+#define BATTERY_LEVEL_SLOPE_1 0.3f
 
 /// offset of the battery level curve in the range 100% - 25%
 #define BATTERY_LEVEL_OFFSET_1 -800
 
 /// slope of the battery level curve in the range 25% - 5%
-#define BATTERY_LEVEL_SLOPE_2 0.08
+#define BATTERY_LEVEL_SLOPE_2 0.08f
 
 /// offset of the battery level curve in the range 25% - 5%
 #define BATTERY_LEVEL_OFFSET_2 -190
@@ -221,13 +221,13 @@ static bool MessageHandlerCb(Message_Message_t* message) {
 static uint8_t ComputeRemainingCapacity(uint32_t batteryLevelMv) {
   if (_batteryMonitorInstance.actualApplicationState ==
       BATTERY_MONITOR_APP_STATE_NO_RESTRICTION) {
-    return (uint8_t)fminf(100, round(batteryLevelMv * BATTERY_LEVEL_SLOPE_1 +
-                                     BATTERY_LEVEL_OFFSET_1));
+    return (uint8_t)fminf(100, roundf(batteryLevelMv * BATTERY_LEVEL_SLOPE_1 +
+                                      BATTERY_LEVEL_OFFSET_1));
   }
 
-  return (uint8_t)fmax(0,
-                       fminf(25, round(batteryLevelMv * BATTERY_LEVEL_SLOPE_2 +
-                                       BATTERY_LEVEL_OFFSET_2)));
+  return (uint8_t)fmaxf(
+      0, fminf(25, roundf(batteryLevelMv * BATTERY_LEVEL_SLOPE_2 +
+                          BATTERY_LEVEL_OFFSET_2)));
 }
 
 void CopyAndSortMeasurements() {

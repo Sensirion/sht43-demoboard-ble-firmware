@@ -200,6 +200,7 @@ static void HciInit() {
 }
 
 static void HciGapGattInit(BleTypes_ApplicationContext_t* appContext) {
+  // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
   LOG_DEBUG("HCI GAP init begin");
   BleTypes_BleDeviceAddress_t srdBdAddr = {.addressWords = {0}};
   tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
@@ -255,4 +256,5 @@ static void HciGapGattInit(BleTypes_ApplicationContext_t* appContext) {
   LOG_DEBUG_CALLSTATUS("set_default_pyh()", ret);
 
   LOG_DEBUG("HCI GAP init end");
+  // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 }
