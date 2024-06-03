@@ -275,7 +275,7 @@ static bool AppBootStateCb(Message_Message_t* msg) {
       if (_controller.uptimeSeconds > 1) {
         Screen_ClearAll();
         DisplayVersionScreen(&_controller);
-        LogFirmwareVersion();
+        // the uart log output was done earlier already!
         _controller.listener.currentMessageHandlerCb = AppShowVersionStateCb;
       }
       return true;
@@ -395,6 +395,11 @@ static bool HandleSystemStateChange(Message_Message_t* msg) {
                                                      ToggleBatteryLowSymbol);
 
     TimerServer_Start(_sht4xReadoutTimer, _timeStepDeltaSeconds * 1000);
+    // At this point we are sure that the peripherals are up and running.
+    // Now it is save to show the Firmware version.
+    // We have to make sure that the firmware version is logged before the log
+    // is switched off.
+    LogFirmwareVersion();
     return true;
   }
   if (msg->header.id == MESSAGE_ID_READOUT_INTERVAL_CHANGE) {
