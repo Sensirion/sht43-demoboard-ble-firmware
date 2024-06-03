@@ -48,7 +48,7 @@
 /// write a debug message to trace output
 #define LOG_DEBUG(message, ...)                                            \
   snprintf(Trace_GetMessageFormatBuffer(), TRACE_FMT_BUFFER_SIZE, message, \
-           __VA_ARGS__);                                                   \
+           ##__VA_ARGS__);                                                 \
   Trace_Message("Debug: %s\n", Trace_GetMessageFormatBuffer())
 
 #else
@@ -72,13 +72,13 @@
 /// write a error message to trace output
 #define LOG_ERROR(message, ...)                                            \
   snprintf(Trace_GetMessageFormatBuffer(), TRACE_FMT_BUFFER_SIZE, message, \
-           __VA_ARGS__);                                                   \
+           ##__VA_ARGS__);                                                 \
   Trace_Message("Error: %s\n", Trace_GetMessageFormatBuffer())
 
 /// write a info message to trace output
 #define LOG_INFO(message, ...)                                             \
   snprintf(Trace_GetMessageFormatBuffer(), TRACE_FMT_BUFFER_SIZE, message, \
-           __VA_ARGS__);                                                   \
+           ##__VA_ARGS__);                                                 \
   Trace_Message("Info: %s\n", Trace_GetMessageFormatBuffer())
 #endif  // STATIC_CODE_ANALYSIS
 
