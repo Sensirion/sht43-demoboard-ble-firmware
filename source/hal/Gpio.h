@@ -46,6 +46,13 @@
 /// Alias for GPIO PC10
 #define UserButton_Pin GPIO_PIN_10
 
+/// Enumeration to refer to the debug pins of the demo board.
+/// These pins are externally available and can be attached to a logic analyzer.
+typedef enum {
+  DEBUG_PIN_PB11 = GPIO_PIN_11,
+  DEBUG_PIN_PA12 = GPIO_PIN_12,
+} DEBUG_PIN;
+
 /// type definition of signal handler callback
 typedef void (*Gpio_HandleGpioExtiSignalCb_t)();
 
@@ -64,5 +71,18 @@ void Gpio_UnregisterOnExtiSignalPc10();
 /// Query the status of Gpio pin 10 of port c
 /// @return true if the pin is high; false otherwise.
 bool Gpio_IsPc10Set();
+
+/// Enable debug pins
+///
+/// The pins are enabled and configured as output.
+void Gpio_EnableDebugPins();
+
+/// Set the value of the selected debug pin port B-11.
+/// @param value The value to be set
+void Gpio_SetDebugPinB11(bool value);
+
+/// Set the value of the selected debug pin port A-12.
+/// @param value The value to be set
+void Gpio_SetDebugPinA12(bool value);
 
 #endif  // GPIO_H
