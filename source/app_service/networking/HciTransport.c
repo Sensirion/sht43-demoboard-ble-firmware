@@ -291,11 +291,12 @@ static bool CheckC2FwVersions(WirelessFwInfo_t* fwInfo) {
   asExpected = asExpected && fwInfo->VersionMajor == COPRO_BINARY_VERSION_MAJOR;
   asExpected = asExpected && fwInfo->VersionMinor == COPRO_BINARY_VERSION_MINOR;
 
-  LOG_DEBUG("Wireless Firmware version %d.%d.%d\n", fwInfo->VersionMajor,
+  LOG_DEBUG("BLE Stack version %d.%d.%d\n", fwInfo->VersionMajor,
             fwInfo->VersionMinor, fwInfo->VersionSub);
-  LOG_DEBUG("Wireless Firmware build %d\n", fwInfo->VersionReleaseType);
-  LOG_DEBUG("FUS version %d.%d.%d\n", fwInfo->FusVersionMajor,
-            fwInfo->FusVersionMinor, fwInfo->FusVersionSub);
+  LOG_DEBUG("BLE Stack build %d\n", fwInfo->VersionReleaseType);
+  LOG_DEBUG("Firmware update service version %d.%d.%d\n",
+            fwInfo->FusVersionMajor, fwInfo->FusVersionMinor,
+            fwInfo->FusVersionSub);
 
   return asExpected;
 }
