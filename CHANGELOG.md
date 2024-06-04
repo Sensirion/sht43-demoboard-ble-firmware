@@ -5,6 +5,27 @@ the full log, please refer to the git commit history.
 
 ## Unreleased
 
+## v0.6.0 (2024-06-04)
+
+### Fixed
+
+* Stabilize data download
+* Cleanup logging
+* Improve screen flickering
+
+### Changed
+
+* Default name of DemoBoard
+* Log BLE stack version to UART in release mode
+* I2C frequency changed to ~400KHz
+* Lower POR level to ~1.7V
+
+### Added
+
+* Pairing screen and secure pairing
+* Support for debug pins PA12 and PB11
+* Double click for change of temperature units
+
 ## v0.5.3 (2024-02-28)
 
 ### Fixed
