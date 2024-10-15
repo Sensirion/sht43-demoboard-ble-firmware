@@ -68,9 +68,9 @@ static Custom_App_Context_t Custom_App_Context;
  * END of Section BLE_APP_CONTEXT
  */
 
-uint8_t UpdateCharData[247];
-uint8_t NotifyCharData[247];
-
+uint8_t UpdateCharData[512];
+uint8_t NotifyCharData[512];
+uint16_t Connection_Handle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -105,6 +105,12 @@ void Custom_STM_App_Notification(Custom_STM_App_Notification_evt_t *pNotificatio
       /* USER CODE BEGIN CUSTOM_STM_TEST_WRITE_NO_RESP_EVT */
 
       /* USER CODE END CUSTOM_STM_TEST_WRITE_NO_RESP_EVT */
+      break;
+
+    case CUSTOM_STM_NOTIFICATION_COMPLETE_EVT:
+      /* USER CODE BEGIN CUSTOM_STM_NOTIFICATION_COMPLETE_EVT */
+
+      /* USER CODE END CUSTOM_STM_NOTIFICATION_COMPLETE_EVT */
       break;
 
     default:

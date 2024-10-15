@@ -1,12 +1,11 @@
 /*****************************************************************************
  * @file    ble_vs_codes.h
- * @author  MDG
  * @brief   STM32WB BLE API (vendor specific event codes)
  *          Auto-generated file: do not edit!
  *****************************************************************************
  * @attention
  *
- * Copyright (c) 2018-2023 STMicroelectronics.
+ * Copyright (c) 2018-2024 STMicroelectronics.
  * All rights reserved.
  *
  * This software is licensed under terms that can be found in the LICENSE file
@@ -35,8 +34,8 @@
 /* ACI_GAP_AUTHORIZATION_REQ_EVENT code */
 #define ACI_GAP_AUTHORIZATION_REQ_VSEVT_CODE              0x0403U
 
-/* ACI_GAP_SLAVE_SECURITY_INITIATED_EVENT code */
-#define ACI_GAP_SLAVE_SECURITY_INITIATED_VSEVT_CODE       0x0404U
+/* ACI_GAP_PERIPHERAL_SECURITY_INITIATED_EVENT code */
+#define ACI_GAP_PERIPHERAL_SECURITY_INITIATED_VSEVT_CODE  0x0404U
 
 /* ACI_GAP_BOND_LOST_EVENT code */
 #define ACI_GAP_BOND_LOST_VSEVT_CODE                      0x0405U
@@ -130,6 +129,9 @@
 
 /* ACI_GATT_MULT_NOTIFICATION_EVENT code */
 #define ACI_GATT_MULT_NOTIFICATION_VSEVT_CODE             0x0C1AU
+
+/* ACI_GATT_NOTIFICATION_COMPLETE_EVENT code */
+#define ACI_GATT_NOTIFICATION_COMPLETE_VSEVT_CODE         0x0C1BU
 
 /* ACI_GATT_READ_EXT_EVENT code */
 #define ACI_GATT_READ_EXT_VSEVT_CODE                      0x0C1DU
