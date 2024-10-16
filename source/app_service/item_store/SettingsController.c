@@ -62,7 +62,7 @@ static ItemStore_SystemConfig_t _defaultSettings = {
     .deviceName = "SHT43 DB",
     .isLogEnabled = false,
     .isAdvertiseDataEnabled = true,
-    .loggingInterval = 60000};
+    .loggingInterval = 600000};
 
 /// Actual settings;
 /// The structure needs to be 8 byte aligned!
