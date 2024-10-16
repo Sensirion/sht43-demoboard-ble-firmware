@@ -161,6 +161,17 @@ void System_Init(void) {
 
   ItemStore_Init();
 
+// keep the debugger enabled in sleep mode
+// this prevents the app from crashing while stepping out of
+// sleep mode.
+#if defined(DEBUG)
+  HAL_DBGMCU_EnableDBGSleepMode();
+  HAL_DBGMCU_EnableDBGStopMode();
+
+  /// enable debugger interrupts
+  LL_EXTI_EnableIT_32_63(LL_EXTI_LINE_48);
+#endif
+
   RunSystem();
 }
 
