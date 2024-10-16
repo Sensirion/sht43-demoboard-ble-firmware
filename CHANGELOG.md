@@ -5,6 +5,16 @@ the full log, please refer to the git commit history.
 
 ## Unreleased
 
+### Fixed
+
+* Default logging interval set to 10'
+* Zero mailbox memory
+* Enable debugger in sleep mode for debug builds
+
+### Changed
+
+* Update STM Framework to version 1.20
+
 ## v0.6.0 (2024-06-04)
 
 ### Fixed
