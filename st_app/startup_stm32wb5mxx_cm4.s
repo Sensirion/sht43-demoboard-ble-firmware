@@ -103,6 +103,7 @@ Reset_Handler:
   INIT_DATA _sMB_MEM2, _eMB_MEM2, _siMB_MEM2
 
 /* Zero fill the bss segments. */
+  INIT_BSS _sMB_MEM1, _eMB_MEM1
   INIT_BSS _sbss, _ebss
 
 /* Call static constructors */

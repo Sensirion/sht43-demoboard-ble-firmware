@@ -1,12 +1,11 @@
 /*****************************************************************************
  * @file    ble_gatt_aci.h
- * @author  MDG
  * @brief   STM32WB BLE API (gatt_aci)
  *          Auto-generated file: do not edit!
  *****************************************************************************
  * @attention
  *
- * Copyright (c) 2018-2023 STMicroelectronics.
+ * Copyright (c) 2018-2024 STMicroelectronics.
  * All rights reserved.
  *
  * This software is licensed under terms that can be found in the LICENSE file
@@ -24,8 +23,8 @@
 
 /**
  * @brief ACI_GATT_INIT
- * Initialize the GATT layer for server and client roles. It also adds the GATT
- * service with Service Changed Characteristic.
+ * Initializes the GATT layer for server and client roles. It also adds the
+ * GATT service with Service Changed Characteristic.
  * Until this command is issued the GATT channel does not process any commands
  * even if the connection is opened. This command has to be given before using
  * any of the GAP features.
@@ -97,7 +96,7 @@ tBleStatus aci_gatt_include_service( uint16_t Service_Handle,
 
 /**
  * @brief ACI_GATT_ADD_CHAR
- * Add a characteristic to a service.
+ * Adds a characteristic to a service.
  * The command returns the handle of the declaration attribute. The attribute
  * that holds the Characteristic Value is always allocated at the next handle
  * (Char_Handle + 1). The Characteristic Value is immediately followed, in
@@ -111,6 +110,8 @@ tBleStatus aci_gatt_include_service( uint16_t Service_Handle,
  * For instance, if CHAR_PROP_NOTIFY is selected but not CHAR_PROP_BROADCAST
  * nor CHAR_PROP_EXT, then the Client Characteristic Configuration attribute
  * handle is Char_Handle + 2.
+ * Additional descriptors can be added to the characteristic by calling the
+ * ACI_GATT_ADD_CHAR_DESC command immediately after calling this command.
  * 
  * @param Service_Handle Handle of the Service to which the characteristic will
  *        be added
@@ -145,6 +146,7 @@ tBleStatus aci_gatt_include_service( uint16_t Service_Handle,
  *        - 0x01: GATT_NOTIFY_ATTRIBUTE_WRITE
  *        - 0x02: GATT_NOTIFY_WRITE_REQ_AND_WAIT_FOR_APPL_RESP
  *        - 0x04: GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP
+ *        - 0x08: GATT_NOTIFY_NOTIFICATION_COMPLETION
  * @param Enc_Key_Size Minimum encryption key size required to read the
  *        characteristic.
  *        Values:
@@ -171,7 +173,11 @@ tBleStatus aci_gatt_add_char( uint16_t Service_Handle,
 
 /**
  * @brief ACI_GATT_ADD_CHAR_DESC
- * Add a characteristic descriptor to a service.
+ * Adds a characteristic descriptor to a service.
+ * Note that this command allocates the new handle for the descriptor after the
+ * currently allocated handles. It is therefore advisable to call this command
+ * following the call of the command ACI_GATT_ADD_CHAR which created the
+ * characteristic containing this descriptor.
  * 
  * @param Service_Handle Handle of service to which the characteristic belongs
  * @param Char_Handle Handle of the characteristic to which description has to
@@ -233,24 +239,32 @@ tBleStatus aci_gatt_add_char_desc( uint16_t Service_Handle,
 
 /**
  * @brief ACI_GATT_UPDATE_CHAR_VALUE
- * Update a characteristic value in a service. If notifications (or
+ * Updates a characteristic value in a service. If notifications (or
  * indications) are enabled on that characteristic, a notification (or
- * indication) is sent to the client after sending this command. The command is
- * queued into the STM32WB command queue.
- * If the buffer is full, because previous commands could not be still
- * processed, the function will return BLE_STATUS_INSUFFICIENT_RESOURCES. This
- * will happen if notifications (or indications) are enabled and the
- * application calls ACI_GATT_UPDATE_CHAR_VALUE at an higher rate than what is
- * allowed by the link.
- * Throughput on BLE link depends on connection interval and connection length
- * parameters (decided by the master, see
- * aci_l2cap_connection_parameter_update_request() for more info on how to
- * suggest new connection parameters from a slave). If the application does not
- * want to lose notifications because STM32WB buffer becomes full, it must
- * retry again till the function returns BLE_STATUS_SUCCESS or any other error
- * code.
- * Note that the characteristic is updated only if the command returns
- * BLE_STATUS_SUCCESS.
+ * indication) is sent to any client that has registered for notifications (or
+ * indications) via the Client Characteristic Configuration.
+ * Notes:
+ * - The command is disallowed if it would cause the generation of an
+ * indication on a bearer which is still awaiting confirmation of a previous
+ * indication.
+ * - The command does not execute and returns BLE_STATUS_BUSY if notifications
+ * from a previous call are not completed. The application can enable and wait
+ * for the event ACI_GATT_NOTIFICATION_COMPLETE_EVENT to avoid this case.
+ * - The command does not execute and returns BLE_STATUS_INSUFFICIENT_RESOURCES
+ * if there is no more room in the TX pool to allocate notification (or
+ * indication) packets. This happens if notifications (or indications) are
+ * enabled and the application calls this command at an higher rate than what
+ * is allowed by the link. Throughput on BLE link depends on connection
+ * interval and connection length parameters (decided by the Central, see
+ * ACI_L2CAP_CONNECTION_PARAMETER_UPDATE_REQ for more information on how to
+ * suggest new connection parameters from a Peripheral). The application can
+ * wait for the event ACI_GATT_TX_POOL_AVAILABLE_EVENT before retrying a call
+ * to this command. It can also retry the call until it does not return
+ * BLE_STATUS_INSUFFICIENT_RESOURCES anymore.
+ * - When calling this command, the characteristic value is updated only if the
+ * command returns BLE_STATUS_SUCCESS or BLE_STATUS_SEC_PERMISSION_ERROR. The
+ * security permission error means that at least one client has not been
+ * notified due to security requirements not met.
  * 
  * @param Service_Handle Handle of service to which the characteristic belongs
  * @param Char_Handle Handle of the characteristic declaration
@@ -262,7 +276,9 @@ tBleStatus aci_gatt_add_char_desc( uint16_t Service_Handle,
  *        If the Val_Offset is set to a value greater than 0, then the length
  *        of the attribute will be set to the maximum length as specified for
  *        the attribute while adding the characteristic.
- * @param Char_Value_Length Length of the characteristic value in octets
+ * @param Char_Value_Length Length of the Char_Value parameter in octets.
+ *        On STM32WB, this value must not exceed (BLE_CMD_MAX_PARAM_LEN - 6)
+ *        i.e. 249 for BLE_CMD_MAX_PARAM_LEN default value.
  * @param Char_Value Characteristic value
  * @return Value indicating success or error code.
  */
@@ -274,7 +290,7 @@ tBleStatus aci_gatt_update_char_value( uint16_t Service_Handle,
 
 /**
  * @brief ACI_GATT_DEL_CHAR
- * Delete the specified characteristic from the service.
+ * Deletes the specified characteristic from the service.
  * 
  * @param Serv_Handle Handle of service to which the characteristic belongs
  * @param Char_Handle Handle of the characteristic which has to be deleted
@@ -285,7 +301,7 @@ tBleStatus aci_gatt_del_char( uint16_t Serv_Handle,
 
 /**
  * @brief ACI_GATT_DEL_SERVICE
- * Delete the specified service from the GATT server database.
+ * Deletes the specified service from the GATT server database.
  * 
  * @param Serv_Handle Handle of the service to be deleted
  * @return Value indicating success or error code.
@@ -294,7 +310,7 @@ tBleStatus aci_gatt_del_service( uint16_t Serv_Handle );
 
 /**
  * @brief ACI_GATT_DEL_INCLUDE_SERVICE
- * Delete the Include definition from the service.
+ * Deletes the Include definition from the service.
  * 
  * @param Serv_Handle Handle of the service to which the include service
  *        belongs
@@ -306,8 +322,9 @@ tBleStatus aci_gatt_del_include_service( uint16_t Serv_Handle,
 
 /**
  * @brief ACI_GATT_SET_EVENT_MASK
- * Mask events from the GATT. The default configuration is all the events
- * masked.
+ * Masks events from the GATT. If the bit in the GATT_Evt_Mask is set to a one,
+ * then the event associated with that bit will be enabled.
+ * The default configuration is all the events masked.
  * 
  * @param GATT_Evt_Mask GATT/ATT event mask.
  *        Values:
@@ -338,7 +355,7 @@ tBleStatus aci_gatt_set_event_mask( uint32_t GATT_Evt_Mask );
 
 /**
  * @brief ACI_GATT_EXCHANGE_CONFIG
- * Perform an ATT MTU exchange procedure.
+ * Performs an ATT MTU exchange procedure.
  * When the ATT MTU exchange procedure is completed, a
  * ACI_ATT_EXCHANGE_MTU_RESP_EVENT event is generated. A
  * ACI_GATT_PROC_COMPLETE_EVENT event is also generated to indicate the end of
@@ -353,7 +370,7 @@ tBleStatus aci_gatt_exchange_config( uint16_t Connection_Handle );
 
 /**
  * @brief ACI_ATT_FIND_INFO_REQ
- * Send a Find Information Request.
+ * Sends a Find Information Request.
  * This command is used to obtain the mapping of attribute handles with their
  * associated types. The responses of the procedure are given through the
  * ACI_ATT_FIND_INFO_RESP_EVENT event. The end of the procedure is indicated by
@@ -372,7 +389,7 @@ tBleStatus aci_att_find_info_req( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_ATT_FIND_BY_TYPE_VALUE_REQ
- * Send a Find By Type Value Request
+ * Sends a Find By Type Value Request
  * The Find By Type Value Request is used to obtain the handles of attributes
  * that have a given 16-bit UUID attribute type and a given attribute value.
  * The responses of the procedure are given through the
@@ -400,7 +417,7 @@ tBleStatus aci_att_find_by_type_value_req( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_ATT_READ_BY_TYPE_REQ
- * Send a Read By Type Request.
+ * Sends a Read By Type Request.
  * The Read By Type Request is used to obtain the values of attributes where
  * the attribute type is known but the handle is not known.
  * The responses are given through the ACI_ATT_READ_BY_TYPE_RESP_EVENT event.
@@ -422,7 +439,7 @@ tBleStatus aci_att_read_by_type_req( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_ATT_READ_BY_GROUP_TYPE_REQ
- * Send a Read By Group Type Request.
+ * Sends a Read By Group Type Request.
  * The Read By Group Type Request is used to obtain the values of grouping
  * attributes where the attribute type is known but the handle is not known.
  * Grouping attributes are defined at GATT layer. The grouping attribute types
@@ -448,7 +465,7 @@ tBleStatus aci_att_read_by_group_type_req( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_ATT_PREPARE_WRITE_REQ
- * Send a Prepare Write Request.
+ * Sends a Prepare Write Request.
  * The Prepare Write Request is used to request the server to prepare to write
  * the value of an attribute.
  * The responses of the procedure are given through the
@@ -473,7 +490,7 @@ tBleStatus aci_att_prepare_write_req( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_ATT_EXECUTE_WRITE_REQ
- * Send an Execute Write Request.
+ * Sends an Execute Write Request.
  * The Execute Write Request is used to request the server to write or cancel
  * the write of all the prepared values currently held in the prepare queue
  * from this client.
@@ -496,7 +513,7 @@ tBleStatus aci_att_execute_write_req( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_DISC_ALL_PRIMARY_SERVICES
- * Start the GATT client procedure to discover all primary services on the
+ * Starts the GATT client procedure to discover all primary services on the
  * server.
  * The responses of the procedure are given through the
  * ACI_ATT_READ_BY_GROUP_TYPE_RESP_EVENT event.
@@ -506,7 +523,7 @@ tBleStatus aci_att_execute_write_req( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @return Value indicating success or error code.
  */
@@ -514,7 +531,7 @@ tBleStatus aci_gatt_disc_all_primary_services( uint16_t Connection_Handle );
 
 /**
  * @brief ACI_GATT_DISC_PRIMARY_SERVICE_BY_UUID
- * Start the procedure to discover the primary services of the specified UUID
+ * Starts the procedure to discover the primary services of the specified UUID
  * on the server.
  * The responses of the procedure are given through the
  * ACI_ATT_FIND_BY_TYPE_VALUE_RESP_EVENT event.
@@ -526,7 +543,7 @@ tBleStatus aci_gatt_disc_all_primary_services( uint16_t Connection_Handle );
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param UUID_Type UUID type: 0x01 = 16 bits UUID while 0x02 = 128 bits UUID
  * @param UUID See @ref UUID_t
@@ -538,7 +555,7 @@ tBleStatus aci_gatt_disc_primary_service_by_uuid( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_FIND_INCLUDED_SERVICES
- * Start the procedure to find all included services.
+ * Starts the procedure to find all included services.
  * The responses of the procedure are given through the
  * ACI_ATT_READ_BY_TYPE_RESP_EVENT event.
  * The end of the procedure is indicated by a ACI_GATT_PROC_COMPLETE_EVENT
@@ -549,7 +566,7 @@ tBleStatus aci_gatt_disc_primary_service_by_uuid( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Start_Handle Start attribute handle of the service
  * @param End_Handle End attribute handle of the service
@@ -561,7 +578,7 @@ tBleStatus aci_gatt_find_included_services( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_DISC_ALL_CHAR_OF_SERVICE
- * Start the procedure to discover all the characteristics of a given service.
+ * Starts the procedure to discover all the characteristics of a given service.
  * When the procedure is completed, a ACI_GATT_PROC_COMPLETE_EVENT event is
  * generated. Before procedure completion the response packets are given
  * through ACI_ATT_READ_BY_TYPE_RESP_EVENT event.
@@ -571,7 +588,7 @@ tBleStatus aci_gatt_find_included_services( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Start_Handle Start attribute handle of the service
  * @param End_Handle End attribute handle of the service
@@ -583,7 +600,8 @@ tBleStatus aci_gatt_disc_all_char_of_service( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_DISC_CHAR_BY_UUID
- * Start the procedure to discover all the characteristics specified by a UUID.
+ * Starts the procedure to discover all the characteristics specified by a
+ * UUID.
  * When the procedure is completed, a ACI_GATT_PROC_COMPLETE_EVENT event is
  * generated. Before procedure completion the response packets are given
  * through ACI_GATT_DISC_READ_CHAR_BY_UUID_RESP_EVENT event.
@@ -593,7 +611,7 @@ tBleStatus aci_gatt_disc_all_char_of_service( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Start_Handle Start attribute handle of the service
  * @param End_Handle End attribute handle of the service
@@ -609,7 +627,7 @@ tBleStatus aci_gatt_disc_char_by_uuid( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_DISC_ALL_CHAR_DESC
- * Start the procedure to discover all characteristic descriptors on the
+ * Starts the procedure to discover all characteristic descriptors on the
  * server.
  * When the procedure is completed, a ACI_GATT_PROC_COMPLETE_EVENT event is
  * generated. Before procedure completion the response packets are given
@@ -620,7 +638,7 @@ tBleStatus aci_gatt_disc_char_by_uuid( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Char_Handle Handle of the characteristic value
  * @param End_Handle End handle of the characteristic
@@ -632,7 +650,7 @@ tBleStatus aci_gatt_disc_all_char_desc( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_READ_CHAR_VALUE
- * Start the procedure to read the attribute value.
+ * Starts the procedure to read the attribute value.
  * When the procedure is completed, a ACI_GATT_PROC_COMPLETE_EVENT event is
  * generated. Before procedure completion the response packet is given through
  * ACI_ATT_READ_RESP_EVENT event.
@@ -642,7 +660,7 @@ tBleStatus aci_gatt_disc_all_char_desc( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Attr_Handle Handle of the characteristic value to be read
  * @return Value indicating success or error code.
@@ -667,7 +685,7 @@ tBleStatus aci_gatt_read_char_value( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Start_Handle Starting handle of the range to be searched
  * @param End_Handle End handle of the range to be searched
@@ -683,7 +701,7 @@ tBleStatus aci_gatt_read_using_char_uuid( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_READ_LONG_CHAR_VALUE
- * Start the procedure to read a long characteristic value.
+ * Starts the procedure to read a long characteristic value.
  * When the procedure is completed, a ACI_GATT_PROC_COMPLETE_EVENT event is
  * generated. Before procedure completion the response packets are given
  * through ACI_ATT_READ_BLOB_RESP_EVENT event.
@@ -693,7 +711,7 @@ tBleStatus aci_gatt_read_using_char_uuid( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Attr_Handle Handle of the characteristic value to be read
  * @param Val_Offset Offset from which the value needs to be read
@@ -705,7 +723,7 @@ tBleStatus aci_gatt_read_long_char_value( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_READ_MULTIPLE_CHAR_VALUE
- * Start a procedure to read multiple characteristic values from a server.
+ * Starts a procedure to read multiple characteristic values from a server.
  * The command must specify the handles of the characteristic values to be
  * read.
  * When the procedure is completed, a ACI_GATT_PROC_COMPLETE_EVENT event is
@@ -717,7 +735,7 @@ tBleStatus aci_gatt_read_long_char_value( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Number_of_Handles Number of handles in the following table
  *        Values:
@@ -731,16 +749,19 @@ tBleStatus aci_gatt_read_multiple_char_value( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_WRITE_CHAR_VALUE
- * Start the procedure to write a characteristic value.
+ * Starts the procedure to write a characteristic value.
  * When the procedure is completed, a ACI_GATT_PROC_COMPLETE_EVENT event is
  * generated.
+ * The length of the value to be written must not exceed (ATT_MTU - 3). On
+ * STM32WB, it must also not exceed (BLE_CMD_MAX_PARAM_LEN - 5) i.e. 250 for
+ * BLE_CMD_MAX_PARAM_LEN default value.
  * 
  * @param Connection_Handle Specifies the ATT bearer for which the command
  *        applies.
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Attr_Handle Handle of the characteristic value to be written
  * @param Attribute_Val_Length Length of the value to be written
@@ -754,7 +775,7 @@ tBleStatus aci_gatt_write_char_value( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_WRITE_LONG_CHAR_VALUE
- * Start the procedure to write a long characteristic value.
+ * Starts the procedure to write a long characteristic value.
  * When the procedure is completed, a ACI_GATT_PROC_COMPLETE_EVENT event is
  * generated. During the procedure, ACI_ATT_PREPARE_WRITE_RESP_EVENT and
  * ACI_ATT_EXEC_WRITE_RESP_EVENT events are raised.
@@ -764,11 +785,13 @@ tBleStatus aci_gatt_write_char_value( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Attr_Handle Handle of the characteristic value to be written
  * @param Val_Offset Offset at which the attribute has to be written
- * @param Attribute_Val_Length Length of the value to be written
+ * @param Attribute_Val_Length Length of the value to be written.
+ *        On STM32WB, this value must not exceed (BLE_CMD_MAX_PARAM_LEN - 7)
+ *        i.e. 248 for BLE_CMD_MAX_PARAM_LEN default value.
  * @param Attribute_Val Value to be written
  * @return Value indicating success or error code.
  */
@@ -780,7 +803,7 @@ tBleStatus aci_gatt_write_long_char_value( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_WRITE_CHAR_RELIABLE
- * Start the procedure to write a characteristic reliably.
+ * Starts the procedure to write a characteristic reliably.
  * When the procedure is completed, a  ACI_GATT_PROC_COMPLETE_EVENT event is
  * generated. During the procedure, ACI_ATT_PREPARE_WRITE_RESP_EVENT and
  * ACI_ATT_EXEC_WRITE_RESP_EVENT events are raised.
@@ -790,11 +813,13 @@ tBleStatus aci_gatt_write_long_char_value( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Attr_Handle Handle of the attribute to be written
  * @param Val_Offset Offset at which the attribute has to be written
- * @param Attribute_Val_Length Length of the value to be written
+ * @param Attribute_Val_Length Length of the value to be written.
+ *        On STM32WB, this value must not exceed (BLE_CMD_MAX_PARAM_LEN - 7)
+ *        i.e. 248 for BLE_CMD_MAX_PARAM_LEN default value.
  * @param Attribute_Val Value to be written
  * @return Value indicating success or error code.
  */
@@ -806,7 +831,7 @@ tBleStatus aci_gatt_write_char_reliable( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_WRITE_LONG_CHAR_DESC
- * Start the procedure to write a long characteristic descriptor.
+ * Starts the procedure to write a long characteristic descriptor.
  * When the procedure is completed, a ACI_GATT_PROC_COMPLETE_EVENT event is
  * generated. During the procedure, ACI_ATT_PREPARE_WRITE_RESP_EVENT and
  * ACI_ATT_EXEC_WRITE_RESP_EVENT events are raised.
@@ -816,11 +841,13 @@ tBleStatus aci_gatt_write_char_reliable( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Attr_Handle Handle of the attribute to be written
  * @param Val_Offset Offset at which the attribute has to be written
- * @param Attribute_Val_Length Length of the value to be written
+ * @param Attribute_Val_Length Length of the value to be written.
+ *        On STM32WB, this value must not exceed (BLE_CMD_MAX_PARAM_LEN - 7)
+ *        i.e. 248 for BLE_CMD_MAX_PARAM_LEN default value.
  * @param Attribute_Val Value to be written
  * @return Value indicating success or error code.
  */
@@ -832,7 +859,7 @@ tBleStatus aci_gatt_write_long_char_desc( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_READ_LONG_CHAR_DESC
- * Start the procedure to read a long characteristic value.
+ * Starts the procedure to read a long characteristic value.
  * When the procedure is completed, a ACI_GATT_PROC_COMPLETE_EVENT event is
  * generated. Before procedure completion the response packets are given
  * through ACI_ATT_READ_BLOB_RESP_EVENT event.
@@ -842,7 +869,7 @@ tBleStatus aci_gatt_write_long_char_desc( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Attr_Handle Handle of the characteristic descriptor
  * @param Val_Offset Offset from which the value needs to be read
@@ -854,16 +881,19 @@ tBleStatus aci_gatt_read_long_char_desc( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_WRITE_CHAR_DESC
- * Start the procedure to write a characteristic descriptor.
+ * Starts the procedure to write a characteristic descriptor.
  * When the procedure is completed, a ACI_GATT_PROC_COMPLETE_EVENT event is
  * generated.
+ * The length of the value to be written must not exceed (ATT_MTU - 3). On
+ * STM32WB, it must also not exceed (BLE_CMD_MAX_PARAM_LEN - 5) i.e. 250 for
+ * BLE_CMD_MAX_PARAM_LEN default value.
  * 
  * @param Connection_Handle Specifies the ATT bearer for which the command
  *        applies.
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Attr_Handle Handle of the attribute to be written
  * @param Attribute_Val_Length Length of the value to be written
@@ -877,7 +907,7 @@ tBleStatus aci_gatt_write_char_desc( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_READ_CHAR_DESC
- * Start the procedure to read the descriptor specified.
+ * Starts the procedure to read the descriptor specified.
  * When the procedure is completed, a ACI_GATT_PROC_COMPLETE_EVENT event is
  * generated.
  * Before procedure completion the response packet is given through
@@ -888,7 +918,7 @@ tBleStatus aci_gatt_write_char_desc( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Attr_Handle Handle of the descriptor to be read
  * @return Value indicating success or error code.
@@ -898,18 +928,19 @@ tBleStatus aci_gatt_read_char_desc( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_WRITE_WITHOUT_RESP
- * Start the procedure to write a characteristic value without waiting for any
+ * Starts the procedure to write a characteristic value without waiting for any
  * response from the server. No events are generated after this command is
- * executed. The length of the value to be written must not exceed (ATT_MTU -
- * 3); it must also not exceed (BLE_EVT_MAX_PARAM_LEN - 5) i.e. 250 for
- * BLE_EVT_MAX_PARAM_LEN default value.
+ * executed.
+ * The length of the value to be written must not exceed (ATT_MTU - 3). On
+ * STM32WB, it must also not exceed (BLE_CMD_MAX_PARAM_LEN - 5) i.e. 250 for
+ * BLE_CMD_MAX_PARAM_LEN default value.
  * 
  * @param Connection_Handle Specifies the ATT bearer for which the command
  *        applies.
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Attr_Handle Handle of the characteristic value to be written
  * @param Attribute_Val_Length Length of the value to be written
@@ -923,12 +954,13 @@ tBleStatus aci_gatt_write_without_resp( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_SIGNED_WRITE_WITHOUT_RESP
- * Start a signed write without response from the server.
+ * Starts a signed write without response from the server.
  * The procedure is used to write a characteristic value with an authentication
  * signature without waiting for any response from the server. It cannot be
- * used when the link is encrypted. The length of the value to be written must
- * not exceed (ATT_MTU - 15); it must also not exceed (BLE_EVT_MAX_PARAM_LEN -
- * 5) i.e. 250 for BLE_EVT_MAX_PARAM_LEN default value.
+ * used when the link is encrypted.
+ * The length of the value to be written must not exceed (ATT_MTU - 15). On
+ * STM32WB, it must also not exceed (BLE_CMD_MAX_PARAM_LEN - 5) i.e. 250 for
+ * BLE_CMD_MAX_PARAM_LEN default value.
  * 
  * @param Connection_Handle Connection handle for which the command applies.
  *        Values:
@@ -953,7 +985,7 @@ tBleStatus aci_gatt_signed_write_without_resp( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @return Value indicating success or error code.
  */
@@ -973,7 +1005,7 @@ tBleStatus aci_gatt_confirm_indication( uint16_t Connection_Handle );
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Attr_Handle Handle of the attribute that was passed in the event
  *        ACI_GATT_WRITE_PERMIT_REQ_EVENT
@@ -1015,7 +1047,7 @@ tBleStatus aci_gatt_write_resp( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @return Value indicating success or error code.
  */
@@ -1024,8 +1056,8 @@ tBleStatus aci_gatt_allow_read( uint16_t Connection_Handle );
 /**
  * @brief ACI_GATT_SET_SECURITY_PERMISSION
  * This command sets the security permission for the attribute handle
- * specified. Currently the setting of security permission is allowed only for
- * client configuration descriptor.
+ * specified. It is allowed only for the Client Characteristic Configuration
+ * descriptor.
  * 
  * @param Serv_Handle Handle of the service which contains the attribute whose
  *        security permission has to be modified
@@ -1093,6 +1125,8 @@ tBleStatus aci_gatt_read_handle_value( uint16_t Attr_Handle,
  * This command is a more flexible version of ACI_GATT_UPDATE_CHAR_VALUE to
  * support update of long attribute up to 512 bytes and indicate selectively
  * the generation of Indication/Notification.
+ * The description notes for the ACI_GATT_UPDATE_CHAR_VALUE command also apply
+ * here.
  * 
  * @param Conn_Handle_To_Notify Specifies the client(s) to be notified.
  *        Values:
@@ -1100,13 +1134,13 @@ tBleStatus aci_gatt_read_handle_value( uint16_t Attr_Handle,
  *          bearer
  *        - 0x0001 ... 0x0EFF: Notify one client on the specified unenhanced
  *          ATT bearer (the parameter is the connection handle)
- *        - 0xEA00 ... 0xEA1F: Notify one client on the specified enhanced ATT
+ *        - 0xEA00 ... 0xEA3F: Notify one client on the specified enhanced ATT
  *          bearer (the LSB-byte of the parameter is the connection-oriented
  *          channel index)
  * @param Service_Handle Handle of service to which the characteristic belongs
  * @param Char_Handle Handle of the characteristic declaration
- * @param Update_Type Allow Notification or Indication generation,
- *         if enabled in the client characteristic configuration descriptor
+ * @param Update_Type Allow Notification or Indication generation, if enabled
+ *        in the client characteristic configuration descriptor
  *        Flags:
  *        - 0x00: Do not notify
  *        - 0x01: Notification
@@ -1117,7 +1151,9 @@ tBleStatus aci_gatt_read_handle_value( uint16_t Attr_Handle,
  *        fixed length characteristic this field is ignored.
  * @param Value_Offset The offset from which the attribute value has to be
  *        updated.
- * @param Value_Length Length of the Value parameter in octets
+ * @param Value_Length Length of the Value parameter in octets.
+ *        On STM32WB, this value must not exceed (BLE_CMD_MAX_PARAM_LEN - 12)
+ *        i.e. 243 for BLE_CMD_MAX_PARAM_LEN default value.
  * @param Value Updated characteristic value
  * @return Value indicating success or error code.
  */
@@ -1132,7 +1168,8 @@ tBleStatus aci_gatt_update_char_value_ext( uint16_t Conn_Handle_To_Notify,
 
 /**
  * @brief ACI_GATT_DENY_READ
- * Deny the GATT server to send a response to a read request from a client.
+ * This command is used to deny the GATT server to send a response to a read
+ * request from a client.
  * The application may send this command when it receives the
  * ACI_GATT_READ_PERMIT_REQ_EVENT or  ACI_GATT_READ_MULTI_PERMIT_REQ_EVENT.
  * This command indicates to the stack that the client is not allowed to read
@@ -1141,7 +1178,7 @@ tBleStatus aci_gatt_update_char_value_ext( uint16_t Conn_Handle_To_Notify,
  * in the range 0x80-0x9F (Application Error).
  * The application should issue the ACI_GATT_DENY_READ  or ACI_GATT_ALLOW_READ
  * command within 30 seconds from the reception of the
- * ACI_GATT_READ_PERMIT_REQ_EVENT or  ACI_GATT_READ_MULTI_PERMIT_REQ_EVENT
+ * ACI_GATT_READ_PERMIT_REQ_EVENT or ACI_GATT_READ_MULTI_PERMIT_REQ_EVENT
  * events; otherwise the GATT procedure issues a timeout.
  * 
  * @param Connection_Handle Specifies the ATT bearer for which the command
@@ -1149,7 +1186,7 @@ tBleStatus aci_gatt_update_char_value_ext( uint16_t Conn_Handle_To_Notify,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Error_Code Error code for the command
  *        Values:
@@ -1202,7 +1239,7 @@ tBleStatus aci_gatt_store_db( void );
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Number_of_Handles Number of handles in the following table
  *        Values:
@@ -1216,7 +1253,7 @@ tBleStatus aci_gatt_send_mult_notification( uint16_t Connection_Handle,
 
 /**
  * @brief ACI_GATT_READ_MULTIPLE_VAR_CHAR_VALUE
- * Start a procedure to read multiple variable length characteristic values
+ * Starts a procedure to read multiple variable length characteristic values
  * from a server.
  * The command must specify the handles of the characteristic values to be
  * read.
@@ -1229,7 +1266,7 @@ tBleStatus aci_gatt_send_mult_notification( uint16_t Connection_Handle,
  *        Values:
  *        - 0x0000 ... 0x0EFF: Unenhanced ATT bearer (the parameter is the
  *          connection handle)
- *        - 0xEA00 ... 0xEA1F: Enhanced ATT bearer (the LSB-byte of the
+ *        - 0xEA00 ... 0xEA3F: Enhanced ATT bearer (the LSB-byte of the
  *          parameter is the connection-oriented channel index)
  * @param Number_of_Handles Number of handles in the following table
  *        Values:
