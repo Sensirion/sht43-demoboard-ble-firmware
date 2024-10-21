@@ -6,17 +6,45 @@ The software has the layers **utility**, **hal**, **app_service** and **app**. T
 
 ## Dynamic Decomposition
 
+The main application is executed on the Cortex-M4 microprocessor and the wireless stack is executed on a Cortex-M0 coprocessor. These two processors interact using a mailbox mechanism and a shared RAM portion. The coprocessor firmware is delivered as a binary and cannot be changed. It is used as a black box through the host command interface (HCI).
+
+Even though the main application does not make use of an operating system, it uses the [ST sequencer](https://wiki.st.com/stm32mcu/wiki/Utility:Sequencer), which provides some notion of tasks. In this context, a task is a function without parameters that can be interrupted, suspended and resumed at a later stage in the same position where it was interrupted. Technically, tasks are a kind of co-routines that keep their state on the stack. It is important to understand that the tasks can only resume operation when the subsequent active tasks have terminated! Therefore, a task must not include an infinite loop, but it will be triggered many times depending on some condition.
+
+The demo board application includes the following tasks:
+
+|Task-ID| Task function | Description|
+|:---| :---|:---|
+|SCHEDULER_TASK_HANDLE_HCI_EVENT = 0   | hci_user_evt_proc | Service the HCI mailbox used for the inter processor communication. This process may send an ACI/HCI command when the svc_ctl.c module is used.|
+|SCHEDULER_TASK_HANDLE_BLE_MESSAGE = 1 | RunBleMessageDispatch | Dispatch the messages in the Ble application domain. During the message processing functions of the HCI may be called. This may include sending BLE commands|
+|SCHEDULER_TASK_HANDLE_SYSTEM_HCI_EVENT = 2| shci_user_evt_proc | Service the System HCI mailbox used for the inter processor communication. This process will NOT send BLE commands!|
+|SCHEDULER_TASK_HANDLE_FLASH_OPERATION = 3| FlashTask | The flash task is used to control erase of several sectors.|
+|SCHEDULER_TASK_HANDLE_APP_MESSAGES = 4| RunAppMessageDispatch| Dispatch the messages that deal with application logic that is independent from BLE|
+
+The tasks with ID < 2 interact directly with the BLE subsystem. As these calls are synchronous, all other tasks that were active before will stay inactive until this operation is finished. Therefore, it is important that these tasks are scheduled first and do not block the rest of the system. Such a task will only be resumed by either an interrupt or another task which can be scheduled later on. That's the reason for setting the task IDs of tasks that deal with BLE before the others.
+
+### Finate state machines (FSM)
+
+Tasks are a convenient way to execute a sequential piece of work and to provide some degree of parallelism. In this application we have many entities that have states and the behavior changes when a state changes. To simplify the modeling of states, we have introduced a little finite state machine framework.
+The following figure gives an overview of this framework.
+![Finite state machine framework](diagrams/fsm_framework_overview.png)
+
+A state machine (FSM) is a message listener. The messages it receives are the events that are handled by the state machine. Each state of a state machine is modeled by a function that does the handling of the message.
+On application startup, the FSM's are registered within a `MessageBroker`. When an event occurs, the message is published through the function `MessageBroker_PublishMessage`. The message will be put into a queue and dispatched afterward to every registered listener. During the dispatch of the message, every interested FSM will process this message and eventually update its state.
+
+Due to the restrictions that apply to tasks, we have two message domains (MessageBoker), one for application messages and one for the BLE subsystem. Within the application message domain, no calls to the HCI are allowed!
+Application messages will be forwarded to the BLE subsystem, but not vice versa. The dispatching of the messages is done as a dedicated task. A task processes one message at a time and schedules itself again if the message queue is not empty.
+
 ## Application States
 
-The application behavior can be represented by a state diagram. An overview of this state behavior is shown in the figure below.
+The application behavior can be represented by a state diagram and is implemented by many FSM's. An overview of this state behavior is shown in the figure below.
 ![application states](diagrams/app_states.png)
 
-Just after reset the application goes into the **AppBoot** state in which the peripherals are initialized.
+Just after reset, the application goes into the **AppBoot** state in which the peripherals are initialized.
 After initializing the peripherals, the event **evPeripheralInitialized** triggers the application to enter its main loop.
-At first it displays the BleAddress for two seconds. During these two seconds the user may change the display units by pressing the button. After this short time, it enters the state AppNormalOperation. In this state many things happen in parallel:
+At first, it displays the BLE-address for two seconds. During these two seconds, the user may change the display units by pressing the button. After this short time, it enters the state AppNormalOperation. In this state, many things happen in parallel:
 
 - *NormalOperation*: Regular readout of sensor data and update the display with the new values.
-- *Ble Radio*: If not disabled, the sensor values are published in a proprietary advertizement data package. The rate of publishing data is reduced after some time.
+- *Ble Radio*: If not disabled, the sensor values are published in a proprietary advertisement data package. The rate of publishing data is reduced after some time.
   When the battery degrades, the device cannot be connected anymore.
 
 - *PowerCheck States*: The system is always in one of the power states:
