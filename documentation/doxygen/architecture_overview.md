@@ -24,14 +24,14 @@ The tasks with ID < 2 interact directly with the BLE subsystem. As these calls a
 
 ### Finate state machines (FSM)
 
-Tasks are a convenient way to execute a sequential piece of work and to provide some degree of parallelism. In this application we have many entities that have states and the behavior changes when a state changes. To simplify the modeling of states, we have introduced a little finite state machine framework.
+Tasks are a convenient way to execute a sequential piece of work and to provide some degree of parallelism. In this application we have many entities that have states and the behavior changes when a state changes. To simplify the modeling of states, we have introduced a finite state machine framework.
 The following figure gives an overview of this framework.
 ![Finite state machine framework](diagrams/fsm_framework_overview.png)
 
 A state machine (FSM) is a message listener. The messages it receives are the events that are handled by the state machine. Each state of a state machine is modeled by a function that does the handling of the message.
 On application startup, the FSM's are registered within a `MessageBroker`. When an event occurs, the message is published through the function `MessageBroker_PublishMessage`. The message will be put into a queue and dispatched afterward to every registered listener. During the dispatch of the message, every interested FSM will process this message and eventually update its state.
 
-Due to the restrictions that apply to tasks, we have two message domains (MessageBoker), one for application messages and one for the BLE subsystem. Within the application message domain, no calls to the HCI are allowed!
+Due to the restrictions that apply to tasks, we have two message domains (MessageBokers), one for application messages and one for the BLE subsystem. Within the application message domain, no calls to the HCI are allowed!
 Application messages will be forwarded to the BLE subsystem, but not vice versa. The dispatching of the messages is done as a dedicated task. A task processes one message at a time and schedules itself again if the message queue is not empty.
 
 ## Application States
@@ -41,7 +41,7 @@ The application behavior can be represented by a state diagram and is implemente
 
 Just after reset, the application goes into the **AppBoot** state in which the peripherals are initialized.
 After initializing the peripherals, the event **evPeripheralInitialized** triggers the application to enter its main loop.
-At first, it displays the BLE-address for two seconds. During these two seconds, the user may change the display units by pressing the button. After this short time, it enters the state AppNormalOperation. In this state, many things happen in parallel:
+At first, it displays the BLE-address for two seconds. After this short time, it enters the state AppNormalOperation. In this state, many things happen in parallel:
 
 - *NormalOperation*: Regular readout of sensor data and update the display with the new values.
 - *Ble Radio*: If not disabled, the sensor values are published in a proprietary advertisement data package. The rate of publishing data is reduced after some time.

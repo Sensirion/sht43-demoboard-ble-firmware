@@ -14,6 +14,7 @@ the full log, please refer to the git commit history.
 ### Changed
 
 * Update STM Framework to version 1.20
+* Update documentation
 
 ## v0.6.0 (2024-06-04)
 
