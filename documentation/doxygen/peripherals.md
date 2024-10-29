@@ -50,9 +50,9 @@ This is also the reason, why the baudrate is reduced to 19200 bps. With higher s
 
 | Name              | Value                                   |
 |:------------------|:----------------------------------------|
-| Clock Source      | `PCLK1` => 32 MHz                       |
-| Timing value      |  0x00303D5B                             |
-| Target frequency  |  100 kHz                                |
+| Clock Source      | `HSI` => 16 MHz                       |
+| Timing value      |  0x0010061A                             |
+| Target frequency  |  400 kHz                                |
 
 The demo board communicates with the sensor using I2C. The timing value is computed by STM32CubeMX using the configured clock configuration.
 When changing the clock configuration in the code, this value needs to be adapted.
