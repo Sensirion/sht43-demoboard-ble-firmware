@@ -67,6 +67,17 @@ static bool IdleStateCb(Message_Message_t* msg);
 /// @return true if the message was handled, false otherwise
 static bool ShtRequestStartedStateCb(Message_Message_t* msg);
 
+/// Handles messages in ShtRequestRestartedCb state
+///
+/// In contrast to the `RequestStarted` state, the readout will be triggered
+/// from the main system event and not from the timer event SENSOR_READY.
+/// Therefore, it is also not necessary to spawn a timer when the write
+/// operation was acknowledged.
+///
+/// @param msg received message
+/// @return true if the message was handled, false otherwise
+static bool ShtRequestRestartedCb(Message_Message_t* msg);
+
 /// Handles messages in RequestReading state
 /// @param msg received message
 /// @return true if the message was handled, false otherwise
@@ -137,10 +148,28 @@ static bool ShtRequestStartedStateCb(Message_Message_t* msg) {
   return false;
 }
 
+static bool ShtRequestRestartedCb(Message_Message_t* msg) {
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_TIME_INFORMATION) {
+    if (msg->header.id == MESSAGE_ID_TIME_INFO_TIME_ELAPSED) {
+      Sht4x_ReadRequestData();
+      _sht4xController.listener.currentMessageHandlerCb =
+          ShtRequestReadingStateCb;
+      return true;
+    }
+  }
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_RECOVERABLE_ERROR) {
+    HandleError(msg->parameter2);
+    return true;
+  }
+  SetReminderIfNeeded(msg);
+  return false;
+}
+
 static bool ShtRequestReadingStateCb(Message_Message_t* msg) {
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_SENSOR_VALUE) {
     if (msg->header.id == SHT4X_MESSAGE_ID_SENSOR_DATA) {
-      SetIdleState();
+      Sht4x_StartRequest(SHT4X_COMMAND_HIGH_REPEATABILITY_MEASUREMENT);
+      _sht4xController.listener.currentMessageHandlerCb = ShtRequestRestartedCb;
       _sht4xController.consecutiveErrors = 0;
       return true;
     }
