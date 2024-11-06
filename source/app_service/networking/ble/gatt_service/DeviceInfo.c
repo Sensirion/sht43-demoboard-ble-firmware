@@ -45,6 +45,14 @@
 #include "tl.h"
 #include "utility/ErrorHandler.h"
 
+#if defined(DEBUG)
+/// Used suffix of firmware version
+#define VERSION_SUFFIX "-dev.d"
+#else
+/// Used suffix of firmware version
+#define VERSION_SUFFIX "-dev.r"
+#endif
+
 /// structure to hold the handles for gatt service and its characteristics
 PLACE_IN_SECTION("BLE_DRIVER_CONTEXT") static struct _tService {
   uint16_t serviceHandle;               ///< service handle
@@ -151,8 +159,15 @@ static void AddFirmwareVersionCharacteristic(struct _tService* service) {
       .encryptionKeySize = 10,
       .isVariableLengthValue = true};
 
-  snprintf((char*)buffer, sizeof(buffer), "%i.%i.%i", FIRMWARE_VERSION_MAJOR,
-           FIRMWARE_VERSION_MINOR, FIRMWARE_VERSION_PATCH);
+  if (FIRMWARE_VERSION_DEVELOP) {
+    snprintf((char*)buffer, sizeof(buffer), "%i.%i.%i" VERSION_SUFFIX,
+             FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR,
+             FIRMWARE_VERSION_PATCH);
+
+  } else {
+    snprintf((char*)buffer, sizeof(buffer), "%i.%i.%i", FIRMWARE_VERSION_MAJOR,
+             FIRMWARE_VERSION_MINOR, FIRMWARE_VERSION_PATCH);
+  }
   uint8_t length = strnlen((char*)buffer, sizeof(buffer));
   service->firmwareVersionHandle = BleGatt_AddCharacteristic(
       service->serviceHandle, &characteristic, buffer, length);
