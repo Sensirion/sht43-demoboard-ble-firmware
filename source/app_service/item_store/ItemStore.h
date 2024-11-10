@@ -158,6 +158,15 @@ void ItemStore_AddItem(ItemStore_ItemDef_t item,
 /// @param item Id of the item store
 void ItemStore_DeleteAllItems(ItemStore_ItemDef_t item);
 
+/// Check if there is any item in the item store.
+///
+/// Since we only check the first page of the item store this operation is
+/// synchronous.
+///
+/// @param item Id of the item store to be checked.
+/// @return true if there is no valid data in the item store
+bool ItemStore_IsEmpty(ItemStore_ItemDef_t item);
+
 /// Initialize an object to enumerate all items that are stored
 /// in the specified item store. This operation is called asynchronously in
 /// order to not interfere with pending erase operations.
