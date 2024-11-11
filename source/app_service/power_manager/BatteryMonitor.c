@@ -143,6 +143,7 @@ BatteryMonitor_t _batteryMonitorInstance = {
                  .receiveMask = MESSAGE_BROKER_CATEGORY_TIME_INFORMATION |
                                 MESSAGE_BROKER_CATEGORY_BLE_EVENT},
     .remainingCapacity = 0,
+    .measurePeriodically = true,
     .actualApplicationState = BATTERY_MONITOR_APP_STATE_UNDEFINED};
 
 /// Create a new instance of the battery monitor. The Battery monitor is
