@@ -10,11 +10,13 @@ the full log, please refer to the git commit history.
 * Default logging interval set to 10'
 * Zero mailbox memory
 * Enable debugger in sleep mode for debug builds
+* Avoid erase of empty item stores
 
 ### Changed
 
 * Update STM Framework to version 1.20
 * Update documentation
+* Extend version information to show development version
 
 ## v0.6.0 (2024-06-04)
 

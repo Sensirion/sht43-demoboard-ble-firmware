@@ -183,7 +183,8 @@ static bool ItemStoreIdleState(Message_Message_t* msg) {
   }
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE) {
     if (msg->header.id == MESSAGE_ID_BLE_SUBSYSTEM_READY) {
-      if (msg->header.parameter1 == 1) {
+      if (msg->header.parameter1 == 1 &&
+          !ItemStore_IsEmpty(ITEM_DEF_MEASUREMENT_SAMPLE)) {
         // Only delete the items in case of a power on reset
         ItemStore_DeleteAllItems(ITEM_DEF_MEASUREMENT_SAMPLE);
       }
@@ -307,11 +308,23 @@ static bool HandleBleServiceRequest(Message_Message_t* message) {
       newInterval = 10;
     }
     if (newInterval != _measurementItemController.loggingIntervalS) {
-      _measurementItemController.isLoggingIntervalChanged = true;
       _measurementItemController.loggingIntervalS = newInterval;
+      _measurementItemController.currentSampleIndex = 0;
+      _measurementItemController.isSampleReady = false;
       // accumulate at most over one hour
       ComputeAveragingCoefficients(newInterval);
-      ItemStore_DeleteAllItems(ITEM_DEF_MEASUREMENT_SAMPLE);
+      // avoid unnecessary flash erase in order to save power and
+      // erase cycles!
+      if (!ItemStore_IsEmpty(ITEM_DEF_MEASUREMENT_SAMPLE)) {
+        _measurementItemController.isLoggingIntervalChanged = true;
+        ItemStore_DeleteAllItems(ITEM_DEF_MEASUREMENT_SAMPLE);
+      } else {
+        Message_Message_t saveMsg = {
+            .header.category = MESSAGE_BROKER_CATEGORY_BLE_SERVICE_REQUEST,
+            .header.id = SERVICE_REQUEST_MESSAGE_ID_SAVE_LOGGING_INTERVAL,
+            .parameter2 = _measurementItemController.loggingIntervalS * 1000};
+        Message_PublishAppMessage(&saveMsg);
+      }
     }
     return true;
   }

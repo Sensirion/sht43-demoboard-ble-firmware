@@ -292,6 +292,8 @@ ItemStoreInfo_t _itemStore[] = {
                                 .lastPage = SYSTEM_CONFIG_LAST_PAGE,
                                 .nrOfPages = 1 + (SYSTEM_CONFIG_LAST_PAGE -
                                                   SYSTEM_CONFIG_FIRST_PAGE),
+                                .nrOfFullPages = 0,
+                                .currentPageNrOfItems = 0,
                                 .itemSize = sizeof(ItemStore_SystemConfig_t),
                                 .currentState = IdleState},
     [ITEM_DEF_MEASUREMENT_SAMPLE] = {.firstPage = MEASUREMENT_VALUES_FIRST_PAGE,
@@ -299,6 +301,8 @@ ItemStoreInfo_t _itemStore[] = {
                                      .nrOfPages =
                                          1 + (MEASUREMENT_VALUES_LAST_PAGE -
                                               MEASUREMENT_VALUES_FIRST_PAGE),
+                                     .nrOfFullPages = 0,
+                                     .currentPageNrOfItems = 0,
                                      .itemSize =
                                          sizeof(ItemStore_MeasurementSample_t),
                                      .currentState = IdleState},
@@ -329,6 +333,11 @@ void ItemStore_Init() {
   }
 }
 
+bool ItemStore_IsEmpty(ItemStore_ItemDef_t itemStoreId) {
+  return _itemStore[itemStoreId].nrOfFullPages == 0 &&
+         _itemStore[itemStoreId].currentPageNrOfItems == 0;
+}
+
 // Add item must run asynchronously since it is only allowed to
 // add items, while no flash erase is ongoing!
 void ItemStore_AddItem(ItemStore_ItemDef_t item,
@@ -343,6 +352,10 @@ void ItemStore_AddItem(ItemStore_ItemDef_t item,
 
 // All pages that belong to this item store will be erased
 void ItemStore_DeleteAllItems(ItemStore_ItemDef_t item) {
+  // mark the item store as empty
+  _itemStore[item].nrOfFullPages = 0;
+  _itemStore[item].currentPageNrOfItems = 0;
+  // now trigger the erase of all pages
   ItemStoreMessage_t msg = {
       .header.category = MESSAGE_BROKER_CATEGORY_ITEM_STORE,
       .header.id = ITEM_STORE_MESSAGE_ERASE,
@@ -350,6 +363,13 @@ void ItemStore_DeleteAllItems(ItemStore_ItemDef_t item) {
                               .reinit = true,
                               .pageNumber = _itemStore[item].firstPage,
                               .nrOfPages = _itemStore[item].nrOfPages}};
+  // This would be a severe programming error!
+  // This would destroy the application including the OTA capability!
+  // If this happens we need to be able to track this in a debugger
+  ASSERT(((msg.data.eraseParameter.pageNumber >= SYSTEM_CONFIG_FIRST_PAGE) &&
+          (msg.data.eraseParameter.nrOfPages <
+           (MEASUREMENT_VALUES_LAST_PAGE - SYSTEM_CONFIG_FIRST_PAGE + 1))));
+
   Message_PublishAppMessage((Message_Message_t*)&msg);
 }
 
