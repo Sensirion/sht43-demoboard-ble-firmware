@@ -418,6 +418,7 @@ void HAL_LCD_MspInit(LCD_HandleTypeDef* hlcd) {
     // PA9     ------> LCD_COM1
     // PA10    ------> LCD_COM2
     // PA15    ------> LCD_SEG17
+    // PB2     ------> LCD_VLCD <- no capacitor (actual)
     // PB3     ------> LCD_SEG7
     // PB4     ------> LCD_SEG8
     // PB5     ------> LCD_SEG9
@@ -427,6 +428,7 @@ void HAL_LCD_MspInit(LCD_HandleTypeDef* hlcd) {
     // PB14    ------> LCD_SEG14
     // PB15    ------> LCD_SEG15
     // PC2     ------> LCD_SEG20
+    // PC3     ------> LCD_VLCD <- with capacitor (not used)
     // PC4     ------> LCD_SEG22
     // PC6     ------> LCD_SEG24
     // PC7     ------> LCD_SEG25
@@ -445,16 +447,17 @@ void HAL_LCD_MspInit(LCD_HandleTypeDef* hlcd) {
     gpioInitStruct.Alternate = GPIO_AF11_LCD;
     HAL_GPIO_Init(GPIOA, &gpioInitStruct);
 
-    gpioInitStruct.Pin = GPIO_PIN_9 | GPIO_PIN_5 | GPIO_PIN_4 | GPIO_PIN_3 |
-                         GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15 | GPIO_PIN_12;
+    gpioInitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_9 | GPIO_PIN_5 | GPIO_PIN_4 |
+                         GPIO_PIN_3 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15 |
+                         GPIO_PIN_12;
     gpioInitStruct.Mode = GPIO_MODE_AF_PP;
     gpioInitStruct.Pull = GPIO_NOPULL;
     gpioInitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     gpioInitStruct.Alternate = GPIO_AF11_LCD;
     HAL_GPIO_Init(GPIOB, &gpioInitStruct);
 
-    gpioInitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_11 | GPIO_PIN_12 |
-                         GPIO_PIN_6 | GPIO_PIN_4 | GPIO_PIN_9 | GPIO_PIN_7;
+    gpioInitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_6 |
+                         GPIO_PIN_4 | GPIO_PIN_9 | GPIO_PIN_7;
     gpioInitStruct.Mode = GPIO_MODE_AF_PP;
     gpioInitStruct.Pull = GPIO_NOPULL;
     gpioInitStruct.Speed = GPIO_SPEED_FREQ_LOW;
