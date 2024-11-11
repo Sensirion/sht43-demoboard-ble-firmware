@@ -34,6 +34,7 @@
 /// @file BatteryMonitor.c
 #include "BatteryMonitor.h"
 
+#include "app_service/networking/ble/BleInterface.h"
 #include "hal/Adc.h"
 #include "utility/AppDefines.h"
 #include "utility/scheduler/MessageId.h"
@@ -78,6 +79,10 @@ typedef struct tBatteryMonitor {
   uint8_t remainingCapacity;            ///< battery level in percent
   BatteryMonitor_AppState_t actualApplicationState;  ///< actual application
                                                      ///< state
+  /// Flag to enable/disable periodic measurements. While BLE activity
+  /// periodic measurements are suspended since we know that
+  /// the battery is heavily used!
+  bool measurePeriodically;
 } BatteryMonitor_t;
 
 /// defines the depth of the measurement history
@@ -135,7 +140,8 @@ static BatteryMonitor_AppState_t VbatToApplicationState(uint32_t vbatMv);
 /// The only instance of the battery monitor
 BatteryMonitor_t _batteryMonitorInstance = {
     .listener = {.currentMessageHandlerCb = MessageHandlerCb,
-                 .receiveMask = MESSAGE_BROKER_CATEGORY_TIME_INFORMATION},
+                 .receiveMask = MESSAGE_BROKER_CATEGORY_TIME_INFORMATION |
+                                MESSAGE_BROKER_CATEGORY_BLE_EVENT},
     .remainingCapacity = 0,
     .actualApplicationState = BATTERY_MONITOR_APP_STATE_UNDEFINED};
 
@@ -212,8 +218,14 @@ static BatteryMonitor_AppState_t VbatToApplicationState(uint32_t vbatMv) {
 static bool MessageHandlerCb(Message_Message_t* message) {
   if (message->header.category == MESSAGE_BROKER_CATEGORY_TIME_INFORMATION &&
       message->header.id == MESSAGE_ID_TIME_INFO_TIME_ELAPSED) {
-    Adc_MeasureVbat(UpdateVbatCb);
+    if (_batteryMonitorInstance.measurePeriodically) {
+      Adc_MeasureVbat(UpdateVbatCb);
+    }
     return true;
+  }
+  if (message->header.category == MESSAGE_BROKER_CATEGORY_BLE_EVENT) {
+    _batteryMonitorInstance.measurePeriodically =
+        (message->header.id == BLE_INTERFACE_MSG_ID_DISCONNECT);
   }
   return false;
 }
