@@ -39,13 +39,13 @@
 #define APP_DEFINES_H
 
 /// Defines the lower bound for the advertisement interval after
-/// starting the radio ~80ms
+/// starting the radio ~190ms
 /// All defines are in ticks t: t / 1.6 = ms
-#define SHORT_ADVERTISE_INTERVAL_MIN (0x00A0)
+#define SHORT_ADVERTISE_INTERVAL_MIN (0x130)
 
 /// Defines the upper bound for the advertisement interval after
-/// starting the radio ~100ms
-#define SHORT_ADVERTISE_INTERVAL_MAX (0x00C0)
+/// starting the radio ~210ms
+#define SHORT_ADVERTISE_INTERVAL_MAX (0x150)
 
 /// Defines the lower bound for the advertisement interval after
 /// the application was running for some time 2s
