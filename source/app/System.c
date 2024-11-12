@@ -170,6 +170,12 @@ void System_Init(void) {
 
   /// enable debugger interrupts
   LL_EXTI_EnableIT_32_63(LL_EXTI_LINE_48);
+#else
+  // this is required as the OTA seems to enable MCUDBUG and MCU debug
+  // has its own reset domain that is not affected by NVIC_reset!!
+  HAL_DBGMCU_DisableDBGSleepMode();
+  HAL_DBGMCU_DisableDBGStopMode();
+  HAL_DBGMCU_DisableDBGStandbyMode();
 #endif
 
   RunSystem();
