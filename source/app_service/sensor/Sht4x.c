@@ -107,7 +107,7 @@ static bool CheckCrc(uint8_t nBytes);
 static void RequestCompleted();
 
 /// Publishes the message the the response is received
-static void ResposeReceived();
+static void ResponseReceived();
 
 /// Callback to indicate that the wait time has elapsed and that the
 /// and the data can be read.
@@ -191,7 +191,7 @@ void Sht4x_NotifySensorReady() {
 
 void Sht4x_ReadRequestData() {
   I2c3_Read(SHT4X_DEVICE_ADDRESS, _communicationBuffer,
-            _commandMetaData[_command].resultSize, ResposeReceived);
+            _commandMetaData[_command].resultSize, ResponseReceived);
 }
 
 static void RequestCompleted() {
@@ -201,7 +201,7 @@ static void RequestCompleted() {
                                (Message_Message_t*)&_sht4xMessage);
 }
 
-static void ResposeReceived() {
+static void ResponseReceived() {
   Crc_Enable();  // we will require the crc calculation
   _sht4xMessage.head.id = SHT4X_MESSAGE_ID_SENSOR_DATA;
   if (!CheckCrc(_commandMetaData[_command].resultSize)) {
