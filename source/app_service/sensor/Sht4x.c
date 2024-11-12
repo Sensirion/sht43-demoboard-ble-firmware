@@ -180,7 +180,6 @@ void Sht4x_Init(MessageBroker_Broker_t* broker) {
 }
 
 void Sht4x_StartRequest(Sht4x_Commands_t command) {
-  Crc_Enable();  // we will require the crc calculation
   _command = command;
   _communicationBuffer[0] = _commandMetaData[command].cmdId;
   I2c3_Write(SHT4X_DEVICE_ADDRESS, _communicationBuffer, 1, RequestCompleted);
@@ -203,6 +202,7 @@ static void RequestCompleted() {
 }
 
 static void ResposeReceived() {
+  Crc_Enable();  // we will require the crc calculation
   _sht4xMessage.head.id = SHT4X_MESSAGE_ID_SENSOR_DATA;
   if (!CheckCrc(_commandMetaData[_command].resultSize)) {
     _sht4xMessage.head.id = SHT4X_MESSAGE_ID_ERROR;
