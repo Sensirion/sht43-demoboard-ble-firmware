@@ -247,7 +247,7 @@ Presentation_Controller_t _controller = {
                                 MESSAGE_BROKER_CATEGORY_SENSOR_VALUE,
                  .currentMessageHandlerCb = AppBootStateCb},
     .TemperatureConversionCb = TemperatureToCelsius,
-    .bleOn = true,
+    .bleOn = false,
     .batteryState = BATTERY_MONITOR_APP_STATE_NO_RESTRICTION,
     .DisplayValueRow1 = DisplayRhOnScreen,
     .DisplayTemperatureUnit1Cb = Screen_DisplayCelsius1,
@@ -329,9 +329,7 @@ static bool AppNormalOperationStateCb(Message_Message_t* msg) {
     return true;
   }
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_BUTTON_EVENT) {
-    if (msg->header.id == BUTTON_EVENT_LONG_PRESS) {
-      _controller.bleOn = !_controller.bleOn;
-    } else if (msg->header.id == BUTTON_EVENT_DOUBLE_CLICK) {
+    if (msg->header.id == BUTTON_EVENT_DOUBLE_CLICK) {
       ToggleTemperatureUnitFahrenheit();
     } else if (msg->header.id == BUTTON_EVENT_SHORT_PRESS) {
       if (_controller.DisplayValueRow1 == DisplayDewPointOnScreen) {
@@ -374,7 +372,9 @@ static bool EvalBatteryEventCb(Message_Message_t* msg) {
         SHOW_BATTERY_SYMBOL(_controller.batteryState);
     if (_controller.batteryState ==
         BATTERY_MONITOR_APP_STATE_CRITICAL_BATTERY_LEVEL) {
+      // these two indicators are not switched of anymore!
       StartBatterySymbolBlinkTimer();
+      Screen_ForceHighContrast();
     }
     return true;
   }
@@ -384,6 +384,12 @@ static bool EvalBatteryEventCb(Message_Message_t* msg) {
 static bool HandleSystemStateChange(Message_Message_t* msg) {
   if (msg->header.category != MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE) {
     return false;
+  }
+  if (msg->header.id == MESSAGE_ID_BLE_SUBSYSTEM_OFF) {
+    _controller.bleOn = false;
+  }
+  if (msg->header.id == MESSAGE_ID_BLE_SUBSYSTEM_ON) {
+    _controller.bleOn = true;
   }
   if (msg->header.id == MESSAGE_ID_PERIPHERALS_INITIALIZED) {
     _controller.uptimeSeconds = 0;

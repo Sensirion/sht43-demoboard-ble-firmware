@@ -126,6 +126,8 @@
 ///
 ///  NO_RESTRICTION--> CRITICAL: PowerState(CRITICAL)
 ///
+///  NO_RESTRICTION--> REDUCED_OP: PowerState(REDUCED_OP)
+///
 ///  REDUCED_OP--> CRITICAL: PowerState(CRITICAL)
 ///
 ///  }
