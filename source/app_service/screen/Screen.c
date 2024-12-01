@@ -46,6 +46,13 @@
 
 #include <stdlib.h>
 
+/// Flag to indicate whether the stepUpConverter is used or not.
+/// Depending on this flag a different pin configuration is used.
+///
+/// Upon boot the step up converter is not used, but to use it we need to
+/// reset the LCD.
+static bool _useStepUpConverter = false;
+
 static LCD_HandleTypeDef gLcd;  ///< LCD peripheral handle
 
 /// Initialize the LCD peripheral
@@ -77,6 +84,14 @@ const Screen_SegmentBitmap_t gScreen_Digit[] = {
 static void InitLcdHal(void) {
   gLcd.Instance = LCD;
 
+  /// The contrast level needs to be above the
+  /// actual battery voltage.
+  /// Otherwise the efficiency of the step up
+  /// converter is very poor.
+  uint32_t contrast = LCD_CONTRASTLEVEL_4;
+  if (_useStepUpConverter) {
+    contrast = LCD_CONTRASTLEVEL_1;
+  }
   // LSE CLK: LSE = 32744Hz
   // freq = LSE_CLK/ (2*PS*(16+DIV)) according spec page 529
   //
@@ -85,7 +100,7 @@ static void InitLcdHal(void) {
   gLcd.Init.Duty = LCD_DUTY_1_4;
   gLcd.Init.Bias = LCD_BIAS_1_3;
   gLcd.Init.VoltageSource = LCD_VOLTAGESOURCE_INTERNAL;
-  gLcd.Init.Contrast = LCD_CONTRASTLEVEL_3;
+  gLcd.Init.Contrast = contrast;
   gLcd.Init.DeadTime = LCD_DEADTIME_0;
   gLcd.Init.PulseOnDuration = LCD_PULSEONDURATION_0;
   gLcd.Init.MuxSegment = LCD_MUXSEGMENT_DISABLE;
@@ -102,6 +117,14 @@ void Screen_Init() {
   // Initialize LCD HAL
   InitLcdHal();
   Screen_TurnAllSegmentsOn();
+}
+
+void Screen_ForceHighContrast() {
+  if (!_useStepUpConverter) {
+    HAL_LCD_DeInit(&gLcd);
+    _useStepUpConverter = true;
+    InitLcdHal();
+  }
 }
 
 void Screen_TurnAllSegmentsOn() {
@@ -400,6 +423,11 @@ void Screen_ClearAll() {
 /// @param hlcd: LCD handle pointer
 void HAL_LCD_MspInit(LCD_HandleTypeDef* hlcd) {
   GPIO_InitTypeDef gpioInitStruct = {0};
+  gpioInitStruct.Mode = GPIO_MODE_AF_PP;
+  gpioInitStruct.Pull = GPIO_NOPULL;
+  gpioInitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  gpioInitStruct.Alternate = GPIO_AF11_LCD;
+
   RCC_PeriphCLKInitTypeDef periphClkInitStruct = {0};
   if (hlcd->Instance == LCD) {
     // Initializes the peripherals clock
@@ -407,6 +435,21 @@ void HAL_LCD_MspInit(LCD_HandleTypeDef* hlcd) {
     periphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
     if (HAL_RCCEx_PeriphCLKConfig(&periphClkInitStruct) != HAL_OK) {
       ErrorHandler_UnrecoverableError(ERROR_CODE_HARDWARE);
+    }
+
+    uint32_t pinsPortB = GPIO_PIN_2 | GPIO_PIN_9 | GPIO_PIN_5 | GPIO_PIN_4 |
+                         GPIO_PIN_3 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15 |
+                         GPIO_PIN_12;
+    uint32_t pinsPortC = GPIO_PIN_2 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_6 |
+                         GPIO_PIN_4 | GPIO_PIN_9 | GPIO_PIN_7;
+
+    // when the step up converter is used, we connect to the pin with the
+    // mounted capacitor! This consumes always more power!
+    if (_useStepUpConverter) {
+      pinsPortB = GPIO_PIN_9 | GPIO_PIN_5 | GPIO_PIN_4 | GPIO_PIN_3 |
+                  GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15 | GPIO_PIN_12;
+      pinsPortC = GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_11 | GPIO_PIN_12 |
+                  GPIO_PIN_6 | GPIO_PIN_4 | GPIO_PIN_9 | GPIO_PIN_7;
     }
 
     // Peripheral clock enable
@@ -439,36 +482,23 @@ void HAL_LCD_MspInit(LCD_HandleTypeDef* hlcd) {
     // PD7     ------> LCD_SEG39
     // PD12    ------> LCD_SEG32
     // PD13    ------> LCD_SEG33
+
+    /// GPIOA
     gpioInitStruct.Pin =
         GPIO_PIN_1 | GPIO_PIN_15 | GPIO_PIN_10 | GPIO_PIN_8 | GPIO_PIN_9;
-    gpioInitStruct.Mode = GPIO_MODE_AF_PP;
-    gpioInitStruct.Pull = GPIO_NOPULL;
-    gpioInitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    gpioInitStruct.Alternate = GPIO_AF11_LCD;
+
     HAL_GPIO_Init(GPIOA, &gpioInitStruct);
 
-    gpioInitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_9 | GPIO_PIN_5 | GPIO_PIN_4 |
-                         GPIO_PIN_3 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15 |
-                         GPIO_PIN_12;
-    gpioInitStruct.Mode = GPIO_MODE_AF_PP;
-    gpioInitStruct.Pull = GPIO_NOPULL;
-    gpioInitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    gpioInitStruct.Alternate = GPIO_AF11_LCD;
+    /// GPIOB
+    gpioInitStruct.Pin = pinsPortB;
     HAL_GPIO_Init(GPIOB, &gpioInitStruct);
 
-    gpioInitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_6 |
-                         GPIO_PIN_4 | GPIO_PIN_9 | GPIO_PIN_7;
-    gpioInitStruct.Mode = GPIO_MODE_AF_PP;
-    gpioInitStruct.Pull = GPIO_NOPULL;
-    gpioInitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    gpioInitStruct.Alternate = GPIO_AF11_LCD;
+    /// GPIOC
+    gpioInitStruct.Pin = pinsPortC;
     HAL_GPIO_Init(GPIOC, &gpioInitStruct);
 
+    /// GPIOC
     gpioInitStruct.Pin = GPIO_PIN_13 | GPIO_PIN_12 | GPIO_PIN_7 | GPIO_PIN_2;
-    gpioInitStruct.Mode = GPIO_MODE_AF_PP;
-    gpioInitStruct.Pull = GPIO_NOPULL;
-    gpioInitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    gpioInitStruct.Alternate = GPIO_AF11_LCD;
     HAL_GPIO_Init(GPIOD, &gpioInitStruct);
 
     // enable voltage buffer
@@ -485,6 +515,9 @@ void HAL_LCD_MspInit(LCD_HandleTypeDef* hlcd) {
 /// @param hlcd: LCD handle pointer
 void HAL_LCD_MspDeInit(LCD_HandleTypeDef* hlcd) {
   if (hlcd->Instance == LCD) {
+    // disable voltage buffer
+    __HAL_LCD_VOLTAGE_BUFFER_DISABLE(hlcd);
+
     // Peripheral clock disable
     __HAL_RCC_LCD_CLK_DISABLE();
 
