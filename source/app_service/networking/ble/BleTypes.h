@@ -46,6 +46,7 @@
 #include "core/ble_legacy.h"
 #include "core/ble_std.h"
 // clang-format on
+#include "app_service/power_manager/BatteryMonitor.h"
 #include "hci_tl.h"
 #include "svc/Inc/svc_ctl.h"
 
@@ -193,7 +194,12 @@ typedef struct {
   uint64_t timeRunningSeconds;    ///< the time the app is running
   void* advertisementData;        ///< advertisement data
   uint8_t advertisementDataSize;  ///< size of advertisement
-  uint8_t* localName;             ///< Pointer to the device name
+  /// Flag to indicate if the user overruled the system decistion
+  /// to switch the BLE off
+  bool automaticBleOff;
+  /// current application mode
+  BatteryMonitor_AppState_t currentApplicationState;
+  uint8_t* localName;  ///< Pointer to the device name
   BleTypes_AdvertisementMode_t currentAdvertisementMode;  ///< current mode
 } BleTypes_ApplicationContext_t;
 

@@ -179,6 +179,12 @@ static void TrySendSampleFrames();
 /// Stop sending samples
 static void StopSendSamples();
 
+/// Stop the BLE subsystem
+///
+/// This BLE subsystem stops advertising and does not receive
+/// all application messages anymore.
+static void SwitchBleOff();
+
 /// Update the Advertisement and set the new value in the characteristic
 /// @param isAdvertiseSamplesEnabled Flag that tells if sample data is
 ///                                  advertised.
@@ -187,6 +193,8 @@ static void UpdateAdvertiseSamplesEnable(bool isAdvertiseSamplesEnabled);
 /// Struct to store all user defined information for BLE operations
 static BleTypes_ApplicationContext_t gBleApplicationContext = {
     .advertisementData = &gCompleteAdvData,
+    .automaticBleOff = true,
+    .currentApplicationState = BATTERY_MONITOR_APP_STATE_UNDEFINED,
     .advertisementDataSize = sizeof(gCompleteAdvData),
     .currentAdvertisementMode.advertiseModeSpecification = {
         .connectable = true,
@@ -235,10 +243,17 @@ void BleContext_StartBluetoothApp() {
   gBleApplicationContext.bleApplicationContextLegacy.connectionHandle = 0xFFFF;
   _bleAppListener.currentMessageHandlerCb = BleDefaultStateCb;
   bool powerOnReset = Clock_ReadAndClearPorActiveFlag();
+
+  // signal that the ble subsystem may receive configuration data
   Message_Message_t msg = {
       .header.category = MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE,
       .header.id = MESSAGE_ID_BLE_SUBSYSTEM_READY,
       .header.parameter1 = powerOnReset};
+  Message_PublishAppMessage(&msg);
+
+  // signal that the BLE subsystem is on
+  msg.header.id = MESSAGE_ID_BLE_SUBSYSTEM_ON;
+  msg.header.parameter1 = 0U;
   Message_PublishAppMessage(&msg);
 }
 
@@ -502,14 +517,17 @@ static bool BleDefaultStateCb(Message_Message_t* message) {
           NO);
       return true;
     }
+
+    if (message->header.id == BLE_INTERFACE_MSG_ID_BLE_OFF) {
+      SwitchBleOff();
+      return true;
+    }
   }
 
   // react on ble events (start stop advertizing)
   if (message->header.category == MESSAGE_BROKER_CATEGORY_BUTTON_EVENT &&
       message->header.id == BUTTON_EVENT_LONG_PRESS) {
-    BleGap_AdvertiseCancel(&gBleApplicationContext);
-    _bleBridge.receiveMask = MESSAGE_BROKER_CATEGORY_BUTTON_EVENT;
-    _bleAppListener.currentMessageHandlerCb = BleDisabledStateCb;
+    SwitchBleOff();
     return true;
   }
 
@@ -527,6 +545,17 @@ static bool BleDefaultStateCb(Message_Message_t* message) {
 static bool BleDisabledStateCb(Message_Message_t* message) {
   if (message->header.category == MESSAGE_BROKER_CATEGORY_BUTTON_EVENT &&
       message->header.id == BUTTON_EVENT_LONG_PRESS) {
+    // in case the battery is very low we don't enable the radio again!
+    if (gBleApplicationContext.currentApplicationState ==
+        BATTERY_MONITOR_APP_STATE_CRITICAL_BATTERY_LEVEL) {
+      return true;
+    }
+    if (gBleApplicationContext.currentApplicationState ==
+        BATTERY_MONITOR_APP_STATE_REDUCED_OPERATION) {
+      // remember the choice of the user to force
+      // the radio to be on
+      gBleApplicationContext.automaticBleOff = false;
+    }
     BleTypes_AdvertisementMode_t advSpec = {
         .advertiseModeSpecification.connectable = true,
         .advertiseModeSpecification.interval = ADVERTISEMENT_INTERVAL_SHORT};
@@ -537,7 +566,11 @@ static bool BleDisabledStateCb(Message_Message_t* message) {
                              MESSAGE_BROKER_CATEGORY_BUTTON_EVENT |
                              MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE |
                              MESSAGE_BROKER_CATEGORY_TIME_INFORMATION;
-
+    // Spread the news that BLE is on again!
+    Message_Message_t msg = {
+        .header.category = MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE,
+        .header.id = MESSAGE_ID_BLE_SUBSYSTEM_ON};
+    Message_PublishAppMessage(&msg);
     return true;
   }
   return false;
@@ -592,21 +625,21 @@ static bool ForwardToBleAppCb(Message_Message_t* message) {
   if (message->header.category == MESSAGE_BROKER_CATEGORY_BATTERY_EVENT) {
     if (message->header.id == BATTERY_MONITOR_MESSAGE_ID_STATE_CHANGE) {
       BatteryMonitor_Message_t* batteryMsg = (BatteryMonitor_Message_t*)message;
-      BleTypes_AdvertisementMode_t newMode =
-          gBleApplicationContext.currentAdvertisementMode;
-      newMode.advertiseModeSpecification.connectable =
-          (batteryMsg->currentState ==
-           BATTERY_MONITOR_APP_STATE_NO_RESTRICTION);
-      uint8_t newMessageId =
-          batteryMsg->currentState !=
-                  BATTERY_MONITOR_APP_STATE_CRITICAL_BATTERY_LEVEL
-              ? BLE_INTERFACE_MSG_ID_START_ADVERTISE
-              : BLE_INTERFACE_MSG_ID_STOP_ADVERTISE;
-      BleInterface_Message_t newMsg = {
-          .head = {.id = newMessageId,
-                   .category = MESSAGE_BROKER_CATEGORY_BLE_EVENT},
-          .parameter.advertisementMode = newMode};
-      BleInterface_PublishBleMessage((Message_Message_t*)&newMsg);
+      gBleApplicationContext.currentApplicationState = batteryMsg->currentState;
+      // switch the radio off in case the battery is low and the user did
+      // not yet decide to use it anyway
+      if (gBleApplicationContext.currentApplicationState >
+          BATTERY_MONITOR_APP_STATE_NO_RESTRICTION) {
+        if (gBleApplicationContext.currentApplicationState ==
+                BATTERY_MONITOR_APP_STATE_CRITICAL_BATTERY_LEVEL ||
+            gBleApplicationContext.automaticBleOff) {
+          BleInterface_Message_t newMsg = {
+              .head = {.id = BLE_INTERFACE_MSG_ID_BLE_OFF,
+                       .category = MESSAGE_BROKER_CATEGORY_BLE_EVENT},
+              .parameter.reserve = 0};
+          BleInterface_PublishBleMessage((Message_Message_t*)&newMsg);
+        }
+      }
       return true;
     }
     if (message->header.id == BATTERY_MONITOR_MESSAGE_ID_CAPACITY_CHANGE) {
@@ -775,4 +808,21 @@ static void UpdateDeviceSettingCharacteristics(Message_Message_t* message) {
   UpdateAdvertiseSamplesEnable(settings->isAdvertiseDataEnabled);
   DeviceSettingsService_UpdateAlternativeDeviceName(settings->deviceName);
   DeviceSettingsService_UpdateIsLogEnabled(settings->isLogEnabled);
+}
+
+static void SwitchBleOff() {
+  BleGap_AdvertiseCancel(&gBleApplicationContext);
+  // we still need to receive button events (the user might want to
+  // turn the radio on again) and battery events in order to keep track
+  // of the application state
+  _bleBridge.receiveMask = MESSAGE_BROKER_CATEGORY_BUTTON_EVENT |
+                           MESSAGE_BROKER_CATEGORY_BATTERY_EVENT;
+  _bleAppListener.currentMessageHandlerCb = BleDisabledStateCb;
+
+  // publish the information in the application
+  Message_Message_t msg = {
+      .header.category = MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE,
+      .header.id = MESSAGE_ID_BLE_SUBSYSTEM_OFF,
+  };
+  Message_PublishAppMessage(&msg);
 }
