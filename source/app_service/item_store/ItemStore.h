@@ -32,6 +32,44 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 /// @file ItemStore.h
+///
+/// The item store is able to store data items of predefined size on the flash persistently in
+/// chronological order. Once the available space of an item store is exhausted, the oldest items
+/// are removed, and the new items are stored on the freshly available space.
+/// @startuml
+///
+/// state POR <<choice>>
+///
+/// state FlashIdle{
+///
+///
+///   state Idle
+///   state Enumerating
+///   state NoPageLeft <<choice>>
+///
+///   [*] -> Idle
+///   Idle -l-> NoPageLeft: AddItem
+///   NoPageLeft -> Idle: free-page-available
+///   NoPageLeft -> FlashErasing: no-free-page
+///
+///   Idle -d-> Enumerating: start-enumerate
+///   Enumerating -u-> Idle: enumeartion-done
+/// }
+///
+/// state FlashErasing{
+///  [*] -> ErasePage
+///  ErasePage -> ErasePage: erase-next
+/// }
+///
+/// FlashIdle -d-> FlashErasing: start-erase
+/// FlashErasing -u-> FlashIdle: erase-done
+///
+/// [*] -d-> POR
+/// POR -r-> FlashIdle: no POR
+/// POR -> FlashErasing: POR
+///
+/// @enduml
+
 #ifndef ITEM_STORE_H
 #define ITEM_STORE_H
 
