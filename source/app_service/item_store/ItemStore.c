@@ -768,21 +768,24 @@ static bool AdjustNextWritePage(ItemStoreInfo_t* itemStoreInfo,
     return false;
   }
   // the oldest page is removed
+
   ASSERT(itemStoreInfo->oldestPageInfo.pageId == completeTag->nextPage);
+  ASSERT(itemStoreInfo->firstPage <= completeTag->nextPage);
+  ASSERT(itemStoreInfo->lastPage >= completeTag->nextPage);
+
   // the oldest entry is removed -> read next oldest page
   itemStoreInfo->oldestPageInfo = header.beginTag;
 
-  // else erase the next page; during this time, no other request
-  // will be handled
-  itemStoreInfo->nrOfFullPages--;
-  ItemStoreMessage_t msg = {
-      .header.category = MESSAGE_BROKER_CATEGORY_ITEM_STORE,
-      .header.id = ITEM_STORE_MESSAGE_ERASE,
-      .data.eraseParameter = {.itemStore = header.beginTag.itemId,
-                              .reinit = false,
-                              .pageNumber = completeTag->nextPage,
-                              .nrOfPages = 1}};
-  Message_PublishAppMessage((Message_Message_t*)&msg);
+  // Erase the next page; during this time, no other request
+  // will be handled. This must not be asynchronous!
+  _eraseParameters.itemStore = itemStoreInfo->currentPageInfo.itemId;
+  _eraseParameters.nrOfPages = 1;
+  _eraseParameters.reinit = false;
+  _eraseParameters.pageNumber = completeTag->nextPage;
+  // swtitch the state to make sure that no request is handled anymore until the
+  // erase is finished
+  _messageListener.currentMessageHandlerCb = ListenerErasingState;
+  Flash_Erase(completeTag->nextPage, 1, FlashEraseDoneCb);
   return true;
 }
 
@@ -829,11 +832,14 @@ static bool ListenerErasingState(Message_Message_t* message) {
     return true;
   }
   if (message->header.id == ITEM_STORE_MESSAGE_ERASE_DONE) {
-    if (_eraseReminder.pageNumber > 0) {
+    if (_eraseReminder.pageNumber < 0xFF && _eraseReminder.pageNumber > 0 &&
+        _eraseReminder.itemStore != 0xFF && _eraseReminder.nrOfPages > 0) {
       _eraseParameters = _eraseReminder;
+      memset(&_eraseReminder, 0xFF, sizeof(_eraseReminder));
+      _eraseReminder.nrOfPages = 0;
+      _eraseReminder.reinit = false;
       Flash_Erase(_eraseParameters.pageNumber, _eraseParameters.nrOfPages,
                   FlashEraseDoneCb);
-      _eraseReminder.pageNumber = 0;
     } else {
       _messageListener.currentMessageHandlerCb = ListenerIdleState;
       if (_eraseParameters.reinit) {
