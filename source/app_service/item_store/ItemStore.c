@@ -44,7 +44,7 @@
 
 #include <string.h>
 /// First page of the system settings item
-#define SYSTEM_CONFIG_FIRST_PAGE 65
+#define SYSTEM_CONFIG_FIRST_PAGE FIRST_WRITABLE_FLASH_PAGE
 
 /// Last page of the system settings item
 #define SYSTEM_CONFIG_LAST_PAGE (SYSTEM_CONFIG_FIRST_PAGE + 1)
@@ -53,10 +53,7 @@
 #define MEASUREMENT_VALUES_FIRST_PAGE (SYSTEM_CONFIG_LAST_PAGE + 1)
 
 /// Last page of the measurement item
-#define MEASUREMENT_VALUES_LAST_PAGE (MEASUREMENT_VALUES_FIRST_PAGE + 32)
-
-/// Compute the flash address from a page number
-#define PAGE_ADDR(x) ((x)*FLASH_PAGE_SIZE) + FLASH_BASE
+#define MEASUREMENT_VALUES_LAST_PAGE (MEASUREMENT_VALUES_FIRST_PAGE + 31)
 
 /// Maximal value for PAGE_ID
 /// This value must be bigger than the number of valid pages in order to
