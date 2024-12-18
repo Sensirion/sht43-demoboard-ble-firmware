@@ -58,8 +58,10 @@
 /// Compute the flash address from a page number
 #define PAGE_ADDR(x) ((x)*FLASH_PAGE_SIZE) + FLASH_BASE
 
-/// Upper bound for pageBlock indices
-#define MAX_BLOCK_INDEX 32
+/// Maximal value for PAGE_ID
+/// This value must be bigger than the number of valid pages in order to
+/// always being able to locate the oldest and newest page!
+#define MAX_BLOCK_INDEX 64
 
 /// A tag to identify the header of a page;
 #define PAGE_MAGIC 0xA53CC35A
