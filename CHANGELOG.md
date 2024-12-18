@@ -17,6 +17,8 @@ the full log, please refer to the git commit history.
 * Update STM Framework to version 1.20
 * Update documentation
 * Extend version information to show development version
+* New low battery behvior with respect to switching
+  BLE ON/OFF.
 
 ## v0.6.0 (2024-06-04)
 

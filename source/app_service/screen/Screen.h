@@ -116,6 +116,13 @@ typedef void (*Screen_DisplaySymbolCb_t)(Screen_SegmentBitmap_t);
 /// Initialize the LCD peripheral and the screen.
 void Screen_Init();
 
+/// Enable the step up converter.
+///
+/// This operation takes place when the battery becomes week.
+/// The step up converter will be switched on and the contrast
+/// stays more stable. But more current will be used!
+void Screen_ForceHighContrast();
+
 /// Return the segment bitmap for a digit (decimal or hexadecimal)
 /// @param digit Number in the range [0-15].
 ///              For bigger numbers only the lower four bits will be represented
