@@ -138,6 +138,8 @@ bool Flash_Read(uint32_t address, uint8_t* buffer, uint16_t nrOfBytes) {
 }
 
 bool Flash_Write(uint32_t address, const uint8_t* buffer, uint16_t nrOfBytes) {
+  ASSERT(address >= MIN_WRITABLE_ADDRESS &&
+         (address + nrOfBytes - 1) <= MAX_WRITABLE_ADDRESS);
   ASSERT(_flashOperationComplete == 0);  // do not write while erasing
   if (address % 8 != 0) {
     return false;
@@ -184,6 +186,8 @@ bool Flash_Write(uint32_t address, const uint8_t* buffer, uint16_t nrOfBytes) {
 void Flash_Erase(uint16_t startPageNr,
                  uint8_t nrOfPages,
                  Flash_OperationComplete callback) {
+  ASSERT(startPageNr >= FIRST_WRITABLE_FLASH_PAGE);
+  ASSERT((startPageNr + nrOfPages - 1) <= LAST_WRITABLE_FLASH_PAGE);
   ASSERT(_flashOperationComplete == 0);
   _pagesToErase = nrOfPages;
   _flashOperationComplete = callback;
