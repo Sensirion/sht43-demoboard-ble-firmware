@@ -53,6 +53,21 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/// Defines the first page that may be written by the application
+#define FIRST_WRITABLE_FLASH_PAGE 65
+
+/// Defines the laste page the may be written by the application
+#define LAST_WRITABLE_FLASH_PAGE (FIRST_WRITABLE_FLASH_PAGE - 1 + 2 + 32)
+
+/// Compute the flash address from a page number
+#define PAGE_ADDR(x) ((x)*FLASH_PAGE_SIZE) + FLASH_BASE
+
+/// Defines the lowest address that may be written by the application
+#define MIN_WRITABLE_ADDRESS PAGE_ADDR(FIRST_WRITABLE_FLASH_PAGE)
+
+/// Defines the highest address that may be written
+#define MAX_WRITABLE_ADDRESS (PAGE_ADDR(LAST_WRITABLE_FLASH_PAGE + 1) - 1)
+
 /// Callback to receive the status of the flash erase operation
 /// The parameter pageNr holds the first Page that is erased or -1 if an error
 /// occurred. The parameter remaining returns the nrOfPages that where NOT
