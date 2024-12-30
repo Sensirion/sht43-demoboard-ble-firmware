@@ -51,8 +51,9 @@
 
 #include <string.h>
 
-/// Defines the maximum error retries
-#define MAX_CONSECUTIVE_ERRORS 3
+/// Defines the maximum number of consecutive i2c errors before
+/// the device enters an error state that requires a reset.
+#define MAX_CONSECUTIVE_ERRORS 15
 
 /// we allow only for one active reminder!
 Message_Message_t _reminder;
@@ -130,6 +131,9 @@ static bool IdleStateCb(Message_Message_t* msg) {
 static bool ShtRequestStartedStateCb(Message_Message_t* msg) {
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_SENSOR_VALUE) {
     if (msg->header.id == SHT4X_MESSAGE_ID_REQUEST_SENT) {
+      // A successful i2c write took place. Hence we reset
+      // the counter for successive i2c errors
+      _sht4xController.consecutiveErrors = 0;
       Sht4x_NotifySensorReady();
       return true;
     }
@@ -168,15 +172,21 @@ static bool ShtRequestRestartedCb(Message_Message_t* msg) {
 static bool ShtRequestReadingStateCb(Message_Message_t* msg) {
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_SENSOR_VALUE) {
     if (msg->header.id == SHT4X_MESSAGE_ID_SENSOR_DATA) {
+      _sht4xController.consecutiveErrors = 0;
       Sht4x_StartRequest(SHT4X_COMMAND_HIGH_REPEATABILITY_MEASUREMENT);
       _sht4xController.listener.currentMessageHandlerCb = ShtRequestRestartedCb;
-      _sht4xController.consecutiveErrors = 0;
+
       return true;
     }
     if (msg->header.id == SHT4X_MESSAGE_ID_ERROR) {
       HandleError(ERROR_CODE_SENSOR_READOUT);
       return true;
     }
+  }
+  // if we get this message it means that we missed an error indication.
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_TIME_INFORMATION) {
+    HandleError(ERROR_CODE_SENSOR_READOUT);
+    return true;
   }
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_RECOVERABLE_ERROR) {
     HandleError(msg->parameter2);
@@ -188,7 +198,7 @@ static bool ShtRequestReadingStateCb(Message_Message_t* msg) {
 
 static void HandleError(uint32_t errorCode) {
   _sht4xController.consecutiveErrors += 1;
-  if (_sht4xController.consecutiveErrors > MAX_CONSECUTIVE_ERRORS) {
+  if (_sht4xController.consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
     // blocking call
     ErrorHandler_UnrecoverableError(errorCode);
   }
