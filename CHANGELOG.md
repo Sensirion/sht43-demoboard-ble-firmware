@@ -10,7 +10,8 @@ the full log, please refer to the git commit history.
 * Default logging interval set to 10'
 * Zero mailbox memory
 * Enable debugger in sleep mode for debug builds
-* Avoid erase of empty item stores
+* Various improvements in item store
+* Avoid sensor controller getting stuck
 
 ### Changed
 

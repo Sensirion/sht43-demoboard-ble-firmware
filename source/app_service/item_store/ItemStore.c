@@ -774,6 +774,8 @@ static bool AdjustNextWritePage(ItemStoreInfo_t* itemStoreInfo,
 
   // the oldest entry is removed -> read next oldest page
   itemStoreInfo->oldestPageInfo = header.beginTag;
+  // this page must not be counted as full anymore
+  itemStoreInfo->nrOfFullPages--;
 
   // Erase the next page; during this time, no other request
   // will be handled. This must not be asynchronous!
@@ -784,6 +786,7 @@ static bool AdjustNextWritePage(ItemStoreInfo_t* itemStoreInfo,
   // swtitch the state to make sure that no request is handled anymore until the
   // erase is finished
   _messageListener.currentMessageHandlerCb = ListenerErasingState;
+
   Flash_Erase(completeTag->nextPage, 1, FlashEraseDoneCb);
   return true;
 }
