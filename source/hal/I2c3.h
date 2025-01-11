@@ -40,6 +40,7 @@
 
 #include "stm32wbxx_ll_i2c.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /// Definition of function pointer type that is used to notify
@@ -58,8 +59,12 @@ I2C_HandleTypeDef* I2c3_Instance();
 
 /// Release the i2c instance in order to save power
 ///
-/// Release will only happen if no transfer is running anymore
-void I2c3_Release();
+/// @param force if true the i2c block will be released and reset
+///              unconditionally.
+///              Otherwise a reset and release of the block will only
+///              happen, if no request is pending.
+///              This option is needed for error recovery.
+void I2c3_Release(bool force);
 
 /// Trigger a write transaction on i2c
 /// @param address The i2c slave address
