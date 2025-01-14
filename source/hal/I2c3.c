@@ -45,9 +45,6 @@
 
 #include <stdbool.h>
 
-/// Flag to tell if driver is already initialized
-static bool _initialized = false;
-
 /// I2c driver instance
 static I2C_HandleTypeDef _i2c3Instance;
 
@@ -70,26 +67,28 @@ I2C_HandleTypeDef* I2c3_Instance() {
   static bool firstTimeInitialized = false;
 
   if (!firstTimeInitialized) {
-    _initialized = true;
     firstTimeInitialized = true;
     InitDriver(&_i2c3Instance);
   }
 
-  if (!_initialized) {
+  if (_i2c3Instance.State != HAL_I2C_STATE_READY) {
     HAL_I2C_MspInit(&_i2c3Instance);
     __HAL_I2C_ENABLE(&_i2c3Instance);
-    _initialized = true;
+    _i2c3Instance.State = HAL_I2C_STATE_READY;
   }
   return &_i2c3Instance;
 }
 
-void I2c3_Release() {
+void I2c3_Release(bool force) {
+  if (force) {
+    _operationCompleteCb = 0;
+  }
   // the releasing is not yet working properly and needs to be
   // detailed out in a subsequent story to optimize power consumption
-  if (!_initialized || _operationCompleteCb != 0) {
+  if (_i2c3Instance.State == HAL_I2C_STATE_RESET || _operationCompleteCb != 0) {
     return;
   }
-  _initialized = false;
+  _i2c3Instance.State = HAL_I2C_STATE_RESET;
   __HAL_I2C_DISABLE(&_i2c3Instance);
   HAL_I2C_MspDeInit(&_i2c3Instance);
 }
@@ -102,7 +101,10 @@ void I2c3_Write(uint8_t address,
   _operationCompleteCb = doneCb;
   // the system must not go to sleep while transfer is ongoing
   UTIL_LPM_SetStopMode(1 << APP_DEFINE_LPM_CLIENT_I2C, UTIL_LPM_DISABLE);
-  HAL_I2C_Master_Transmit_DMA(I2c3_Instance(), address, data, dataLength);
+  if (HAL_I2C_Master_Transmit_DMA(I2c3_Instance(), address, data, dataLength) !=
+      HAL_OK) {
+    HAL_I2C_ErrorCallback(I2c3_Instance());
+  }
 }
 
 void I2c3_Read(uint8_t address,
@@ -113,7 +115,10 @@ void I2c3_Read(uint8_t address,
   _operationCompleteCb = doneCb;
   // the system must not go to sleep while transfer is ongoing
   UTIL_LPM_SetStopMode(1 << APP_DEFINE_LPM_CLIENT_I2C, UTIL_LPM_DISABLE);
-  HAL_I2C_Master_Receive_DMA(I2c3_Instance(), address, data, dataLength);
+  if (HAL_I2C_Master_Receive_DMA(I2c3_Instance(), address, data, dataLength) !=
+      HAL_OK) {
+    HAL_I2C_ErrorCallback(I2c3_Instance());
+  }
 }
 
 static void InitDriver(I2C_HandleTypeDef* i2c) {
@@ -137,14 +142,12 @@ static void InitDriver(I2C_HandleTypeDef* i2c) {
   if (HAL_I2C_Init(i2c) != HAL_OK) {
     ErrorHandler_UnrecoverableError(ERROR_CODE_HARDWARE);
   }
-
   if (HAL_I2CEx_ConfigAnalogFilter(i2c, I2C_ANALOGFILTER_ENABLE) != HAL_OK) {
     ErrorHandler_RecoverableError(ERROR_CODE_HARDWARE);
   }
   if (HAL_I2CEx_ConfigDigitalFilter(i2c, 0) != HAL_OK) {
     ErrorHandler_RecoverableError(ERROR_CODE_HARDWARE);
   }
-
   LOG_DEBUG("%s", "SUCCESS!\n");
 }
 
@@ -177,6 +180,7 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {
 /// I2c error handler
 /// @param hi2c Pointer to I2c instance
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef* hi2c) {
+  _operationCompleteCb = 0;  // the callback will not be called anymore!
   ErrorHandler_RecoverableError(ERROR_CODE_HARDWARE);
   // the transfer is complete; we can allow to go to stop mode again
   UTIL_LPM_SetStopMode(1 << APP_DEFINE_LPM_CLIENT_I2C, UTIL_LPM_ENABLE);

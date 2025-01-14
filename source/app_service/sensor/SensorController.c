@@ -40,6 +40,7 @@
 
 #include "Sht4x.h"
 #include "app_conf.h"
+#include "app_service/timer_server/TimerServer.h"
 #include "hal/Crc.h"
 #include "hal/I2c3.h"
 #include "math.h"
@@ -53,7 +54,7 @@
 
 /// Defines the maximum number of consecutive i2c errors before
 /// the device enters an error state that requires a reset.
-#define MAX_CONSECUTIVE_ERRORS 15
+#define MAX_CONSECUTIVE_ERRORS 3
 
 /// we allow only for one active reminder!
 Message_Message_t _reminder;
@@ -84,6 +85,11 @@ static bool ShtRequestRestartedCb(Message_Message_t* msg);
 /// @return true if the message was handled, false otherwise
 static bool ShtRequestReadingStateCb(Message_Message_t* msg);
 
+/// Try to recover from successive errors
+/// @param msg received message
+/// @return true if the message was handled, false otherwise
+static bool ShtErrorHandlerCb(Message_Message_t* msg);
+
 /// In case we receive a request that can not be handled right now,
 /// we may set a reminder to handle it later on.
 ///
@@ -93,9 +99,18 @@ static void SetReminderIfNeeded(Message_Message_t* msg);
 /// Set idle state and in process a possible pending request
 static void SetIdleState();
 
+/// Notify that a general call reset was sent
+static void GeneralCallResetSentCb();
+
 /// Handles an incoming error
 /// @param errorCode specifies the error code that might be propagated
 static void HandleError(uint32_t errorCode);
+
+/// Reset timer
+///
+/// After a general call reset was successfully issued this timer is started
+/// and the system only resumes when the timer has elapsed
+static uint8_t _resetTimer;
 
 /// State machine instance of sensor controller
 static SensorController_Controller_t _sht4xController = {
@@ -106,6 +121,8 @@ static SensorController_Controller_t _sht4xController = {
                             MESSAGE_BROKER_CATEGORY_TIME_INFORMATION};
 
 SensorController_Controller_t* SensorController_Sht4xControllerInstance() {
+  _resetTimer =
+      TimerServer_CreateTimer(TIMER_SERVER_MODE_SINGLE_SHOT, SetIdleState);
   return &_sht4xController;
 }
 
@@ -143,6 +160,11 @@ static bool ShtRequestStartedStateCb(Message_Message_t* msg) {
           ShtRequestReadingStateCb;
       return true;
     }
+  }
+  // if we get this message it means that we missed an error indication.
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_TIME_INFORMATION) {
+    HandleError(ERROR_CODE_SENSOR_READOUT);
+    return true;
   }
   if (msg->header.category == MESSAGE_BROKER_CATEGORY_RECOVERABLE_ERROR) {
     HandleError(msg->parameter2);
@@ -196,11 +218,38 @@ static bool ShtRequestReadingStateCb(Message_Message_t* msg) {
   return false;
 }
 
+static bool ShtErrorHandlerCb(Message_Message_t* msg) {
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE) {
+    if (msg->header.id == MESSAGE_ID_GENERAL_CALL_RESET) {
+      _sht4xController.consecutiveErrors = 0;
+      // this will switch to idle state after 30 ms
+      TimerServer_Start(_resetTimer, 30);
+      return true;
+    }
+  }
+  // if we get this message it means that we missed an error indication.
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_TIME_INFORMATION) {
+    ErrorHandler_UnrecoverableError(ERROR_CODE_SENSOR_READOUT);
+    return true;
+  }
+  if (msg->header.category == MESSAGE_BROKER_CATEGORY_RECOVERABLE_ERROR) {
+    ErrorHandler_UnrecoverableError(ERROR_CODE_SENSOR_READOUT);
+    return true;
+  }
+  return false;
+}
+
 static void HandleError(uint32_t errorCode) {
+  // make sure that no history is pending
+  _sht4xController.activeReminder = false;
+  // reset the i2c block
+  I2c3_Release(true);
   _sht4xController.consecutiveErrors += 1;
   if (_sht4xController.consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-    // blocking call
-    ErrorHandler_UnrecoverableError(errorCode);
+    static uint8_t _reset[] = {0x06};
+    _sht4xController.listener.currentMessageHandlerCb = ShtErrorHandlerCb;
+    I2c3_Write(0x00, _reset, 1, GeneralCallResetSentCb);
+    return;
   }
   // just ignore the error and try in the next readout
   SetIdleState();
@@ -212,6 +261,16 @@ static void SetReminderIfNeeded(Message_Message_t* msg) {
     _sht4xController.activeReminder = true;
     memcpy(&_reminder, msg, sizeof(_reminder));
   }
+}
+
+static void GeneralCallResetSentCb() {
+  Message_Message_t _resetMessage = {
+      .header.category = MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE,
+      .header.id = MESSAGE_ID_GENERAL_CALL_RESET,
+      .header.parameter1 = 0xFF,  // invalid data
+      .parameter2 = 0xFFFFFFFF    // not defined at this point in time
+  };
+  Message_PublishAppMessage(&_resetMessage);
 }
 
 static void SetIdleState() {

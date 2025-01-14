@@ -46,7 +46,7 @@
 void UTIL_SEQ_PreIdle() {
   Uart_Release();
   Qspi_Release();
-  I2c3_Release();
+  I2c3_Release(false);
 }
 
 /// Action that takes place when the sequencer has no active 'task'
