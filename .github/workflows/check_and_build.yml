@@ -21,7 +21,7 @@ jobs:
               - ${{github.workspace}}:/workdir
       steps:
             - name: Checkout
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
             - name: Make build scripts executable
               run: chmod 777 build_scripts/*.sh
             - name: Check codebase
@@ -34,7 +34,7 @@ jobs:
               run: |
                 build_scripts/build_docu.sh
             - name: upload-build
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               with:
                 name: sht43-ble-firmware
                 path: |
@@ -43,7 +43,7 @@ jobs:
                   build/**/SHT43_DB-*.hex
                   build/**/SHT43_DB-*.map
             - name: Upload docu
-              uses: actions/upload-pages-artifact@v1
+              uses: actions/upload-pages-artifact@v3
               with:
                 path: documentation/doxygen/output/html
 
@@ -65,6 +65,6 @@ jobs:
       steps:
         - name: Deploy to GitHub Pages
           id: deployment
-          uses: actions/deploy-pages@v2 # or the latest "vX.X.X" version tag for this action
+          uses: actions/deploy-pages@v4 # or the latest "vX.X.X" version tag for this action
           with:
             token: ${{secrets.GITHUB_TOKEN}}
