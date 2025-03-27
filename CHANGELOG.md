@@ -5,6 +5,8 @@ the full log, please refer to the git commit history.
 
 ## Unreleased
 
+## 1.0.0 (2025-03-27)
+
 ### Fixed
 
 * Default logging interval set to 10'
@@ -18,7 +20,7 @@ the full log, please refer to the git commit history.
 * Update STM Framework to version 1.20
 * Update documentation
 * Extend version information to show development version
-* New low battery behvior with respect to switching
+* New low battery behavior with respect to switching
   BLE ON/OFF.
 
 ## v0.6.0 (2024-06-04)
