@@ -166,7 +166,8 @@ cd ./workdir
 ## Setup wired connection with host
 
 To debug the application and to load a new built application you require a wired connection to the host. To establish this you will need to solder a connector to the designated pads on the backside of the board.
-<img src="./documentation/doxygen/diagrams/SHT43_back_with_arrow.png" alt="image" width="50%" height="auto">
+
+<img src="./documentation/doxygen/diagrams/SHT43_back_with_arrow.png" alt="image of SHT43 DemoBoard connector" height="300px">
 
 >:warning: *Don't supply the board from an external power supply while the battery is plugged in!*
 
@@ -188,6 +189,28 @@ All the twelve pads are labeled. Not all of them are required to be connected to
 |PB12|-|
 |NRST|JTAG-RESET|
 |GND| JTAG-GND|
+
+### Logging SHT43 DemoBoard output to Serial Terminal
+
+By default the UART is switched off right after the boot up of the firmware in order reduce power consumption. Nevertheless it is possible to enable the UART output of the SHT43 DemoBoard either by modifying the firmware or
+using the BLE-Service **Device settings** *[uuid: 00008100-b38d-4985-720e-0f993a68ee41]* and setting the characteristics **IsLoggingEnabled** *[uuid: 000081fe-b38d-4985-720e-0f993a68ee41]* to 1.
+
+For communication with the SHT43 DemoBoard the UART needs to be configured as follows:
+
+|Setting | value|
+|----------|----------------:|
+|Baud-rate| 19200|
+|Data bits| 8|
+|Parity| None|
+| Stop bits| 1|
+| Hardware flow control| None|
+
+When the logging is enabled the SHT43 DemoBoard will output the measured temperature and humidity to the UART.
+
+<img src="./documentation/doxygen/diagrams/demo_board_trace.jpg" alt="SHT43 DemoBoard trace output"  height="400px">
+
+With a debug build of the SHT43 DemoBoard the UART can also be used to output debug messages. It is also possible to send data to the SHT43 DemoBoard for dedicated test scenarios.
+
 
 
 ## Loading the application to the SHT43 DemoBoard
