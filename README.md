@@ -2,10 +2,11 @@
 
 The SHT43 Demo Board is a new Sensirion device to demonstrate an application of the Sensirion SHT43 humidity and temperature sensor. It is battery powered and able to communicate with other devices over Bluetooth Low Energy. The board has an [STM32WB55xx](https://www.st.com/en/microcontrollers-microprocessors/stm32wb55rg.html) dual core low power wireless device from ST on it.
 
-The firmware in this repository provides an application for this board that integrates with the Sensirion MyAmbiance app.
+The firmware in this repository provides an application for this board that integrates with the Sensirion MyAmbiance app
 
 [<img src="documentation/doxygen/diagrams/playstore_badge.png" width="100" height = "30">](https://play.google.com/store/apps/details?id=com.sensirion.myam&hl=en_IE) [<img src="documentation/doxygen/diagrams/Download_on_the_App_Store_Badge_US-UK_RGB_blk_092917.svg" width="100" height = "30">](https://apps.apple.com/ch/app/sensirion-myambience/id1529131572)
 
+using theses [BLE-services and characteristics](https://sensirion.github.io/ble-services).
 
 ## Structure Overview
 
