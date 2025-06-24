@@ -625,6 +625,18 @@ static bool ForwardToBleAppCb(Message_Message_t* message) {
   if (message->header.category == MESSAGE_BROKER_CATEGORY_BATTERY_EVENT) {
     if (message->header.id == BATTERY_MONITOR_MESSAGE_ID_STATE_CHANGE) {
       BatteryMonitor_Message_t* batteryMsg = (BatteryMonitor_Message_t*)message;
+      if (gBleApplicationContext.currentApplicationState ==
+          BATTERY_MONITOR_APP_STATE_CRITICAL_BATTERY_LEVEL) {
+        // We do not recover from critical battery level! Once the battery level was critical,
+        // the battery should be changed or we do not do any further BLE operation.
+        // On one hand we enable the charge pump of the display. This will consume more power
+        // and this additional power consumption is not revertible.
+        // On the other hand we start the battery symbol blinking which is not stopped anymore.
+        // Last but not least we have to assume that the inner resistor of the battery is already
+        // significant and further BLE operation may corrupt the device and prevent it from
+        // booting without flashing again.
+        return true;
+      }
       gBleApplicationContext.currentApplicationState = batteryMsg->currentState;
       // switch the radio off in case the battery is low and the user did
       // not yet decide to use it anyway
