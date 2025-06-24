@@ -58,6 +58,8 @@ typedef enum {
   ERROR_CODE_SENSOR_READOUT,
   ERROR_CODE_BLE,
   ERROR_CODE_ITEM_STORE,
+  ERROR_CODE_CM0_NOT_READY,
+  ERROR_CODE_BLE_FW_NOT_RUNNING,
 } ErrorHandler_ErrorCode_t;
 
 /// Signals an unrecoverable error to the application

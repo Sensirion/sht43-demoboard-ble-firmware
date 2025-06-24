@@ -171,7 +171,6 @@ static void OnSystemUserEventReceivedCb(void* payload) {
   // Derive the kind of the received user event
   switch (sysEvent->subevtcode) {
     case SHCI_SUB_EVT_CODE_READY:
-
       OnSystemEventReadyProcessingCb((tSHCI_UserEvtRxParam*)payload);
       break;
 
@@ -189,6 +188,8 @@ static void OnSystemEventErrorCb(TL_AsynchEvt_t* sysEvent) {
       *((SCHI_SystemErrCode_t*)sysEvent->payload);
 
   LOG_ERROR("System error %x received\n", sysErrorCode);
+  // This will anyways require resetting the device
+  ErrorHandler_UnrecoverableError(ERROR_CODE_CM0_NOT_READY);
 }
 
 static void OnSystemEventReadyProcessingCb(tSHCI_UserEvtRxParam* userEvent) {
@@ -199,7 +200,6 @@ static void OnSystemEventReadyProcessingCb(tSHCI_UserEvtRxParam* userEvent) {
   SHCI_C2_CONFIG_Cmd_Param_t configParam = {0};
   uint32_t revisionId = 0;
   uint32_t deviceId = 0;
-
   // Read the firmware version of both the wireless firmware and the FUS
   SHCI_GetWirelessFwInfo(&wirelessInfo);
   if (!CheckC2FwVersions(&wirelessInfo)) {
@@ -246,6 +246,7 @@ static void OnSystemEventReadyProcessingCb(tSHCI_UserEvtRxParam* userEvent) {
 
     // The packet shall not be released as this is not supported by the FUS
     userEvent->status = SHCI_TL_UserEventFlow_Disable;
+    ErrorHandler_UnrecoverableError(ERROR_CODE_BLE_FW_NOT_RUNNING);
   } else {
     LOG_DEBUG("Unexpected event\n");
     ASSERT(false);
