@@ -5,6 +5,15 @@ the full log, please refer to the git commit history.
 
 ## Unreleased
 
+### Fixed
+
+* Check return status of aci_gap_set_non_discoverable() before changing
+  display with ble-symbol
+
+### Changed
+
+* Add new error codes to allow for better error diagnostics during boot up.
+
 ## 1.0.0 (2025-03-27)
 
 ### Fixed
