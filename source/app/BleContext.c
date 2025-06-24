@@ -812,17 +812,21 @@ static void UpdateDeviceSettingCharacteristics(Message_Message_t* message) {
 
 static void SwitchBleOff() {
   BleGap_AdvertiseCancel(&gBleApplicationContext);
-  // we still need to receive button events (the user might want to
-  // turn the radio on again) and battery events in order to keep track
-  // of the application state
-  _bleBridge.receiveMask = MESSAGE_BROKER_CATEGORY_BUTTON_EVENT |
-                           MESSAGE_BROKER_CATEGORY_BATTERY_EVENT;
-  _bleAppListener.currentMessageHandlerCb = BleDisabledStateCb;
+  // in case the cancel request was successful we change the
+  // application state
+  if (gBleApplicationContext.deviceConnectionStatus == BLE_INTERFACE_IDLE) {
+    // we still need to receive button events (the user might want to
+    // turn the radio on again) and battery events in order to keep track
+    // of the application state
+    _bleBridge.receiveMask = MESSAGE_BROKER_CATEGORY_BUTTON_EVENT |
+                             MESSAGE_BROKER_CATEGORY_BATTERY_EVENT;
+    _bleAppListener.currentMessageHandlerCb = BleDisabledStateCb;
 
-  // publish the information in the application
-  Message_Message_t msg = {
-      .header.category = MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE,
-      .header.id = MESSAGE_ID_BLE_SUBSYSTEM_OFF,
-  };
-  Message_PublishAppMessage(&msg);
+    // publish the information in the application
+    Message_Message_t msg = {
+        .header.category = MESSAGE_BROKER_CATEGORY_SYSTEM_STATE_CHANGE,
+        .header.id = MESSAGE_ID_BLE_SUBSYSTEM_OFF,
+    };
+    Message_PublishAppMessage(&msg);
+  }
 }

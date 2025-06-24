@@ -187,9 +187,12 @@ void BleGap_AdvertiseCancel(BleTypes_ApplicationContext_t* applicationContext) {
   if (applicationContext->deviceConnectionStatus !=
       BLE_INTERFACE_CONNECTED_SERVER) {
     tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
-    UNUSED(ret);
     ret = aci_gap_set_non_discoverable();
-    applicationContext->deviceConnectionStatus = BLE_INTERFACE_IDLE;
+    if (ret == BLE_STATUS_SUCCESS) {
+      applicationContext->deviceConnectionStatus = BLE_INTERFACE_IDLE;
+      applicationContext->currentAdvertisementMode.advertiseModeSpecification
+          .connectable = false;
+    }
     LOG_DEBUG_CALLSTATUS("aci_gap_set_non_discoverable()", ret);
   }
   // NOLINTEND(clang-analyzer-deadcode.DeadStores)
