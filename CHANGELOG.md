@@ -9,6 +9,7 @@ the full log, please refer to the git commit history.
 
 * Check return status of aci_gap_set_non_discoverable() before changing
   display with ble-symbol
+* Prevent recover from application state `critical battery level`
 
 ### Changed
 
