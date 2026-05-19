@@ -52,6 +52,23 @@ At first, it displays the BLE-address for two seconds. After this short time, it
   - REDUCED_OP: The battery capacity does not allow connecting the device.
   - CRITICAL: The remaining battery capacity is critical and thus does not allow any BLE or flash operation.
 
+## Error Handling
+Errors may occur in various ways in the application. We might get a CRC error when reading data from a sensor, a response from a peripheral may not arrive in time, ...
+In general errors are categorized into *recoverable errors* and *unrecoverable errors*. While the former should be handled by the application the *unrecoverable error*s do not allow the application to continue and the user has to
+reest the device (by removing and inserting the battery).
+The state in which the device waits for a user reset is a dedicated application state that is signaled with a message (ID=MESSAGE_ID_STATE_CHANGE_ERROR). It is also shown on the display of the demo board with the error code that lead to this situation.
+### Error Codes:
+|Code|Name|Description|
+|---:| :---|:---|
+|  0 | ERROR_CODE_SW_TEST_FAIL | The error is caused by a software check (assert).|
+|  1 | ERROR_CODE_HARDWARE| This error is caused by an unexpected behavior of a peripheral of the micro-controller.|
+|  2 | ERROR_CODE_TIMEOUT| This error is not used. |
+|  3 | ERROR_CODE_SENSOR_READOUT| This error is generated when a reading of the sensor fails. It only becomes unrecoverable after some failed retries.|
+|  4 | ERROR_CODE_BLE| This means the the wireless stack could not be initialized. |
+|  5 | ERROR_CODE_ITEM_STORE| This means that an error occurred while storing data to flash.|
+|  6 | ERROR_CODE_CM0_NOT_READY| This indicates an error that is emitted by the wireless stack of ST |
+|  7 | ERROR_CODE_BLE_FW_NOT_RUNNING| This means that the wireless stack did not boot-up properly after successful initialization.|
+
 ## Interrupts
 
 In order to allow the Software to work in parallel to the hardware many hardware blocks are operated in interrupt mode or using a DMA channel. In any case this requires that some interrupts are enabled and one interrupt triggered function does not depend on another function that requires an interrupt with lower priority.
@@ -76,6 +93,7 @@ This section lists the used interrupts, what they are used for and their priorit
 The system tick is used in various HAL timing functions such as HAL_GetTicks(). With these IRQ settings it should become
 possible to use synchronous debug traces in interrupt routines of interrupt handlers with priority IRQ_PRIO_APP.
 (In release build there should not be any debug traces!)
+
 
 ## Testing
 

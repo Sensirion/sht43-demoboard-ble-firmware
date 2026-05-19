@@ -14,6 +14,7 @@ the full log, please refer to the git commit history.
 ### Changed
 
 * Add new error codes to allow for better error diagnostics during boot up.
+* Extend architecture overview with description of error handling and error codes.
 
 ## 1.0.0 (2025-03-27)
 
